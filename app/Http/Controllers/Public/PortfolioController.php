@@ -88,7 +88,7 @@ class PortfolioController extends Controller
             });
 
         // 5. Combine sets (matching React's combined allItems array)
-        $allItems = $properties->merge($destinations);
+        $allItems = $properties->toBase()->merge($destinations);
 
         // 6. Apply filters in-memory
         $filteredList = $allItems->filter(function ($it) use ($cat, $region, $country, $city, $q, $settingId, $minRooms, $minCap, $featured) {
