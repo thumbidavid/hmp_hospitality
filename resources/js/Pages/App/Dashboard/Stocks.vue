@@ -1,5 +1,5 @@
 <script setup>
-import AuthenticatedLayout from "@/layouts/AuthenticatedLayout.vue";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { Head } from "@inertiajs/vue3";
 import PageBreadcrumb from '@/Components/Admin/common/PageBreadcrumb.vue'
 import { ref } from "vue";
@@ -384,7 +384,7 @@ const transactions = ref([
                                     {{ stock.ticker }}
                                 </h3>
                                 <span class="block text-gray-500 text-theme-xs dark:text-gray-400">{{ stock.name
-                                }}</span>
+                                    }}</span>
                             </div>
                         </div>
                         <div class="flex items-end justify-between">
@@ -595,7 +595,7 @@ const transactions = ref([
                                             {{ item.ticker }}
                                         </h3>
                                         <span class="block text-gray-500 text-theme-xs dark:text-gray-400">{{ item.name
-                                        }}</span>
+                                            }}</span>
                                     </div>
                                 </div>
                                 <div>

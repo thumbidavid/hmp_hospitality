@@ -1,6 +1,6 @@
 <script setup>
 import { Link } from '@inertiajs/vue3'
-import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue'
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 
 const props = defineProps({
     event: { type: Object, required: true },

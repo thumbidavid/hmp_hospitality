@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { Head } from '@inertiajs/vue3'
-import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue'
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import PageBreadcrumb from '@/Components/Admin/common/PageBreadcrumb.vue'
 import DataTable from '@/Components/Admin/DataTable.vue'
 import { useResourceCRUD } from '@/composables/useResourceCRUD.js'

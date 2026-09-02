@@ -1,5 +1,5 @@
 <script setup>
-import AuthenticatedLayout from "@/layouts/AuthenticatedLayout.vue";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { Head, router } from "@inertiajs/vue3";
 import PageBreadcrumb from '@/Components/Admin/common/PageBreadcrumb.vue'
 import { ref, computed } from "vue";
@@ -292,7 +292,7 @@ const activities = computed(() => [
                                         </h3>
                                         <p class="text-xs mt-1 text-gray-500 dark:text-gray-400">
                                             <span class="mr-1 inline-block" :class="card.changeColor">{{ card.change
-                                            }}</span>{{ card.changeText }}
+                                                }}</span>{{ card.changeText }}
                                         </p>
                                     </div>
                                     <div class="max-w-full">
