@@ -1,0 +1,21 @@
+<script setup>
+import { useRole } from '@/Utils/Permissions';
+const { hasRole, hasAnyRole } = useRole();
+</script>
+
+<template>
+    <nav>
+        <!-- Visible to everyone in Admin App -->
+        <Link :href="route('admin.dashboard')">Dashboard</Link>
+
+        <!-- Only visible to Owner -->
+        <Link v-if="hasRole('owner')" :href="route('admin.settings')">
+             System Settings
+        </Link>
+
+        <!-- Visible to Owner OR Receptionist -->
+        <Link v-if="hasAnyRole(['owner', 'receptionist'])" :href="route('admin.appointments')">
+             Appointments
+        </Link>
+    </nav>
+</template>

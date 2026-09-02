@@ -1,0 +1,44 @@
+# Environment
+.env
+.env.backup
+.env.production
+.env.*.local
+
+# Dependencies
+/node_modules
+/vendor
+
+# Laravel
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+/storage/logs/*.log
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/testing/*
+/storage/framework/views/*
+!/storage/framework/cache/.gitkeep
+!/storage/framework/sessions/.gitkeep
+!/storage/framework/testing/.gitkeep
+!/storage/framework/views/.gitkeep
+/bootstrap/cache/*.php
+!/bootstrap/cache/.gitkeep
+
+# Build output
+/public/build
+/public/hot
+
+# IDE / OS
+.idea
+.vscode
+.DS_Store
+Thumbs.db
+*.swp
+
+# Testing
+.phpunit.result.cache
+/coverage
+
+# Composer
+composer.phar
