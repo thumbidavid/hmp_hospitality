@@ -1,5 +1,5 @@
 <script setup>
-import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
+import AuthenticatedLayout from "@/layouts/AuthenticatedLayout.vue";
 import { Head } from "@inertiajs/vue3";
 import PageBreadcrumb from '@/Components/Admin/common/PageBreadcrumb.vue'
 import { ref } from "vue";
@@ -384,7 +384,7 @@ const transactions = ref([
                                     {{ stock.ticker }}
                                 </h3>
                                 <span class="block text-gray-500 text-theme-xs dark:text-gray-400">{{ stock.name
-                                    }}</span>
+                                }}</span>
                             </div>
                         </div>
                         <div class="flex items-end justify-between">
@@ -395,8 +395,8 @@ const transactions = ref([
                             </div>
                             <span class="flex items-center gap-1 rounded-full py-0.5 pl-2 pr-2.5 text-sm font-medium"
                                 :class="stock.status === 'success'
-                                        ? 'bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500'
-                                        : 'bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500'
+                                    ? 'bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500'
+                                    : 'bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500'
                                     ">
                                 <svg v-if="stock.status === 'success'" class="fill-current" width="13" height="12"
                                     viewBox="0 0 13 12" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -508,8 +508,8 @@ const transactions = ref([
                                         </h4>
                                         <span class="flex items-center justify-end gap-1 font-medium text-theme-xs"
                                             :class="stock.status === 'success'
-                                                    ? 'text-success-600 dark:text-success-500'
-                                                    : 'text-error-600 dark:text-error-500'
+                                                ? 'text-success-600 dark:text-success-500'
+                                                : 'text-error-600 dark:text-error-500'
                                                 ">
                                             <svg v-if="
                                                 stock.status === 'success'
@@ -595,7 +595,7 @@ const transactions = ref([
                                             {{ item.ticker }}
                                         </h3>
                                         <span class="block text-gray-500 text-theme-xs dark:text-gray-400">{{ item.name
-                                            }}</span>
+                                        }}</span>
                                     </div>
                                 </div>
                                 <div>
@@ -604,8 +604,8 @@ const transactions = ref([
                                         {{ item.price }}
                                     </h4>
                                     <span class="flex items-center justify-end gap-1 font-medium text-theme-xs" :class="item.status === 'success'
-                                            ? 'text-success-600 dark:text-success-500'
-                                            : 'text-error-600 dark:text-error-500'
+                                        ? 'text-success-600 dark:text-success-500'
+                                        : 'text-error-600 dark:text-error-500'
                                         ">
                                         <svg v-if="item.status === 'success'" class="fill-current" width="12"
                                             height="12" viewBox="0 0 12 12" fill="none"
@@ -697,7 +697,7 @@ const transactions = ref([
                                             <div>
                                                 <span
                                                     class="block font-medium text-gray-700 text-theme-sm dark:text-gray-400">{{
-                                                    trans.name }}</span>
+                                                        trans.name }}</span>
                                             </div>
                                         </div>
                                     </td>

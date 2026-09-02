@@ -1,6 +1,6 @@
 <script setup>
 import { Head, useForm, Link } from '@inertiajs/vue3'
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
+import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue'
 import PageBreadcrumb from '@/Components/Admin/common/PageBreadcrumb.vue'
 import PrimaryButton from '@/Components/Admin/PrimaryButton.vue'
 

@@ -1,6 +1,6 @@
 <script setup>
 import { Head, useForm, Link } from '@inertiajs/vue3'
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
+import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue'
 import PageBreadcrumb from '@/Components/Admin/common/PageBreadcrumb.vue'
 import PrimaryButton from '@/Components/Admin/PrimaryButton.vue'
 
@@ -102,7 +102,7 @@ const typeMap = {
                         <div class="flex flex-wrap items-center justify-between gap-4">
                             <div>
                                 <span class="font-mono text-xs font-bold text-brand-500">{{ rfp.reference_number
-                                }}</span>
+                                    }}</span>
                                 <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">
                                     {{ rfp.programme_name || 'General Portfolio Request' }}
                                 </h3>
@@ -129,7 +129,7 @@ const typeMap = {
                                 <span class="block text-xs font-semibold text-gray-400 uppercase">Contact Name</span>
                                 <span class="font-medium text-gray-900 dark:text-gray-100">{{ rfp.full_name }}</span>
                                 <span v-if="rfp.job_title" class="block text-xs text-gray-400">({{ rfp.job_title
-                                }})</span>
+                                    }})</span>
                             </div>
 
                             <div>
@@ -378,7 +378,7 @@ const typeMap = {
                                         <span class="font-bold text-gray-900 dark:text-gray-100">{{ note.user ?
                                             note.user.name : 'Unknown Staff' }}</span>
                                         <span class="text-gray-400 font-medium">{{ formatDateTime(note.created_at)
-                                        }}</span>
+                                            }}</span>
                                     </div>
                                     <p class="text-gray-700 dark:text-gray-300 mt-1 whitespace-pre-line">{{ note.note }}
                                     </p>

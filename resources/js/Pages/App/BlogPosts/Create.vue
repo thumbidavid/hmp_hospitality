@@ -1,6 +1,6 @@
 <script setup>
 import { Head, useForm, Link } from '@inertiajs/vue3'
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
+import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue'
 import PageBreadcrumb from '@/Components/Admin/common/PageBreadcrumb.vue'
 import PrimaryButton from '@/Components/Admin/PrimaryButton.vue'
 
@@ -88,7 +88,7 @@ const submit = () => {
                                             class="mt-1 block w-full" required>
                                             <option value="" disabled>Select Category</option>
                                             <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name
-                                                }}</option>
+                                            }}</option>
                                         </SelectInput>
                                         <InputError class="mt-2" :message="form.errors.blog_category_id" />
                                     </div>

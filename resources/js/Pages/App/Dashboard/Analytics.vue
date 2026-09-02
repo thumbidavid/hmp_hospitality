@@ -1,5 +1,5 @@
 <script setup>
-import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
+import AuthenticatedLayout from "@/layouts/AuthenticatedLayout.vue";
 import { Head } from "@inertiajs/vue3";
 import PageBreadcrumb from '@/Components/Admin/common/PageBreadcrumb.vue'
 import { ref } from "vue";
@@ -465,7 +465,7 @@ const recentOrders = ref([
                             <div v-for="(channel, index) in topChannels" :key="index"
                                 class="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-800">
                                 <span class="text-gray-500 text-theme-sm dark:text-gray-400">{{ channel.source
-                                    }}</span><span class="text-right text-gray-500 text-theme-sm dark:text-gray-400">{{
+                                }}</span><span class="text-right text-gray-500 text-theme-sm dark:text-gray-400">{{
                                         channel.visitors }}</span>
                             </div>
                         </div>

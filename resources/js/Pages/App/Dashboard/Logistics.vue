@@ -1,5 +1,5 @@
 <script setup>
-import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
+import AuthenticatedLayout from "@/layouts/AuthenticatedLayout.vue";
 import { Head } from "@inertiajs/vue3";
 import PageBreadcrumb from '@/Components/Admin/common/PageBreadcrumb.vue'
 import { ref } from "vue";
@@ -173,7 +173,7 @@ const deliveryActivities = ref([
                             {{ card.title }}
                             <span
                                 class="bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500 inline-flex items-center justify-center gap-1 rounded-full px-2.5 py-0.5 text-sm font-medium">{{
-                                card.change }}</span>
+                                    card.change }}</span>
                         </p>
                     </div>
                 </article>

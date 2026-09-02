@@ -1,5 +1,5 @@
 <script setup>
-import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
+import AuthenticatedLayout from "@/layouts/AuthenticatedLayout.vue";
 import { Head } from "@inertiajs/vue3";
 import PageBreadcrumb from '@/Components/Admin/common/PageBreadcrumb.vue'
 import { ref } from "vue";
@@ -302,7 +302,7 @@ const activities = ref([
                                         </h3>
                                         <p class="text-xs mt-1 text-gray-500 dark:text-gray-400">
                                             <span class="mr-1 inline-block" :class="card.changeColor">{{ card.change
-                                                }}</span>{{ card.changeText }}
+                                            }}</span>{{ card.changeText }}
                                         </p>
                                     </div>
                                     <div class="max-w-full">
@@ -334,7 +334,7 @@ const activities = ref([
                             <div class="overflow-x-auto custom-scrollbar pl-2">
                                 <div class="-ml-5 min-w-[700px] xl:min-w-full">
                                     <VueApexCharts type="bar" :height="funnelChart.chartOptions.chart
-                                            .height
+                                        .height
                                         " :options="funnelChart.chartOptions" :series="funnelChart.series" />
                                 </div>
                             </div>
@@ -511,7 +511,7 @@ const activities = ref([
                                     <div class="overflow-x-auto">
                                         <div class="-ml-3">
                                             <VueApexCharts type="bar" :height="salesChart.chartOptions
-                                                    .chart.height
+                                                .chart.height
                                                 " :options="salesChart.chartOptions
                                                     " :series="salesChart.series" />
                                         </div>
