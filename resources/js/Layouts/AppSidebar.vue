@@ -44,8 +44,11 @@ const openSubmenu = ref(null)
 const page = usePage()
 const user = computed(() => page.props.auth.user)
 
-// Role-based logic modified to match the single-column 'role' ENUM: 'admin' or 'staff'
-const hasRole = (role) => user.value?.role === role
+const hasRole = (role) => {
+    return user.value &&
+        Array.isArray(user.value.roles) &&
+        user.value.roles.includes(role);
+}
 
 /**
  * MENU GROUPS
@@ -105,6 +108,7 @@ const menuGroups = computed(() => {
         groups.push({
             title: 'ADMINISTRATION',
             items: [
+                // Only visible to users where user.roles includes 'admin'
                 { name: 'Staff Directory', route: 'app.admin.users.index', icon: 'UserGroupIcon' },
             ]
         })

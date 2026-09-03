@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\CountryController;
 use App\Http\Controllers\Admin\PortfolioCategoryController;
 use App\Http\Controllers\Admin\SettingController;
@@ -16,6 +17,8 @@ use App\Http\Controllers\Admin\PartnerController;
 use App\Http\Controllers\Admin\ContactSubmissionController;
 use App\Http\Controllers\Admin\NewsletterSubscriberController;
 use App\Http\Controllers\Admin\RfpController;
+use App\Http\Controllers\Admin\UserController;
+
 
 // Public Controllers
 use App\Http\Controllers\Public\HomeController;
@@ -30,6 +33,7 @@ use App\Http\Controllers\Public\RfpController as PublicRfpController;
 use App\Http\Controllers\Public\ContactController;
 use App\Http\Controllers\Public\PolicyController;
 use App\Http\Controllers\Public\BlogController;
+use App\Http\Controllers\Public\SubscriptionController;
 
 use Inertia\Inertia;
 
@@ -103,9 +107,7 @@ Route::middleware(['auth', 'verified'])
     ->group(function () {
 
         // Core Dashboard View
-        Route::get('/dashboard', function () {
-            return Inertia::render('Dashboard');
-        })->name('dashboard');
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
         // Placeholder routes to prevent frontend Ziggy/Inertia routing errors.
         // All paths point back to a standard view until controller files are implemented.
@@ -147,10 +149,10 @@ Route::middleware(['auth', 'verified'])
                 ->parameters(['agency-services' => 'agency_support_service']);
             Route::resource('blog-categories', BlogCategoryController::class)->except(['create', 'edit']);
 
-            // System Directory (Admins Only)
-            Route::get('/users', function () {
-                return Inertia::render('Dashboard');
-            })->name('users.index');
+            // Only administrators can manage User accounts
+            Route::middleware(['role:admin'])->group(function () {
+                Route::resource('users', UserController::class)->except(['create', 'edit']);
+            });
         });
     });
 

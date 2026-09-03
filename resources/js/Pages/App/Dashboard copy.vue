@@ -9,26 +9,21 @@ const props = defineProps({
     metrics: {
         type: Object,
         default: () => ({
-            pipelineValues: [],
-            funnel: { new: 0, contacted: 0, quoted: 0, won: 0, lost: 0, total: 0 },
-            velocity: [],
-            operational: { newRfps: 0, pendingContacts: 0, audienceCount: 0 },
-            popularity: {
-                properties: [],
-                destinations: [],
-                inventory: { properties: 0, destinations: 0 }
-            },
-            segments: {
-                buyerTypes: [],
-                requirementTypes: [],
-                countries: [],
-                categories: [],
-                agencyServices: []
-            },
-            recent_rfps: [] // Live RFP submissions mapped to original recent_orders structure
+            total_active_events: 0,
+            total_news_coverage: 0,
+            total_venues: 0,
+            ticket_amount_sold: 0,
+            pending_sales: 0,
+            total_tickets_distributed: 0,
+            global_check_in_ratio: 0,
+            popular_ticket_tiers: [],
+            most_read_articles: [],
+            user_role_distribution: [],
+            recent_orders: [],
+            scoped_event_data: null
         })
     },
-    ticketed_events: { // Mapped from active destinations array passed by controller
+    ticketed_events: {
         type: Array,
         default: () => []
     }
@@ -37,118 +32,105 @@ const props = defineProps({
 const currentPageTitle = ref("Dashboard Overview");
 const selectedEventFilter = ref("");
 
-// Helper to filter dashboard statistics by parent destination
+// Helper to filter dashboard statistics by event
 const filterDashboardByEvent = () => {
     router.reload({
-        data: { destination_id: selectedEventFilter.value },
+        data: { event_id: selectedEventFilter.value },
         only: ['metrics'],
         preserveState: true
     });
 };
 
-// Formatting currencies
-const formatCurrency = (amount, currency = 'KES') => {
-    return new Intl.NumberFormat('en-KE', { style: 'currency', currency: currency }).format(amount);
+// Formatting currencies cleanly
+const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(amount);
 };
 
-// Helper to resolve the primary won revenue amount from pipeline values
-const getWonUSDValue = computed(() => {
-    const usdPipeline = props.metrics.pipelineValues.find(p => p.currency === 'USD');
-    return usdPipeline ? usdPipeline.total : '0.00';
-});
-
-// 1. Dynamic Overview Stats Cards (HMP Hospitality Inventory & Pipeline)
+// 1. Dynamic Overview Stats Cards
 const overviewStats = computed(() => [
     {
-        title: "Active Pipeline Value (USD)",
-        value: `$${getWonUSDValue.value}`,
-        change: "Active Deals",
+        title: "Ticket Amount Sold (Revenue)",
+        value: formatCurrency(props.metrics.ticket_amount_sold),
+        change: "Active Sales",
         status: "success",
     },
     {
-        title: "Represented Properties",
-        value: String(props.metrics.popularity.inventory.properties),
+        title: "Active Events",
+        value: String(props.metrics.total_active_events),
         change: "On Directory",
         status: "success",
     },
     {
-        title: "Active Destinations",
-        value: String(props.metrics.popularity.inventory.destinations),
-        change: "Active Regions",
+        title: "Total News Coverage",
+        value: String(props.metrics.total_news_coverage),
+        change: "Published Updates",
         status: "success",
     },
     {
-        title: "Newsletter Audience",
-        value: String(props.metrics.operational.audienceCount),
-        change: "Active Subscribers",
+        title: "Total Tickets Distributed",
+        value: String(props.metrics.total_tickets_distributed),
+        change: "Distributed Passes",
         status: "success",
     },
 ]);
 
-// 2. Churn Rate (Unread RFPs) & User Growth (RFP Conversion Ratio) Cards
-const smallInfoCards = computed(() => {
-    // Compute the conversion ratio percentage (Won RFPs / Total RFPs)
-    const wonCount = props.metrics.funnel.won || 0;
-    const totalCount = props.metrics.funnel.total || 0;
-    const ratio = totalCount > 0 ? Math.round((wonCount / totalCount) * 100) : 0;
-
-    return [
-        {
-            title: "New RFPs (Unread)",
-            subtitle: "Awaiting Staff Review",
-            value: String(props.metrics.operational.newRfps),
-            change: "New Leads",
-            changeText: "awaiting action",
-            changeColor: "text-red-500",
-            chartOptions: {
-                chart: { type: "area", sparkline: { enabled: true } },
-                stroke: { curve: "smooth", width: 2 },
-                colors: ["#ef4444"],
-                fill: {
-                    type: "gradient",
-                    gradient: { opacityFrom: 0.6, opacityTo: 0.1 },
-                },
-                series: [
-                    {
-                        name: "New Leads",
-                        data: [5, 12, 8, 15, 10, 14, props.metrics.operational.newRfps],
-                    },
-                ],
-                tooltip: { enabled: false },
+// 2. Churn Rate (Pending) & User Growth (Check-In Ratio) Cards
+const smallInfoCards = computed(() => [
+    {
+        title: "Pending Sales (Outstanding)",
+        subtitle: "Awaiting Manual Verification",
+        value: formatCurrency(props.metrics.pending_sales),
+        change: "Pending Orders",
+        changeText: "awaiting admin action",
+        changeColor: "text-red-500",
+        chartOptions: {
+            chart: { type: "area", sparkline: { enabled: true } },
+            stroke: { curve: "smooth", width: 2 },
+            colors: ["#ef4444"],
+            fill: {
+                type: "gradient",
+                gradient: { opacityFrom: 0.6, opacityTo: 0.1 },
             },
-        },
-        {
-            title: "RFP Conversion Ratio",
-            subtitle: "Leads successfully converted",
-            value: `${ratio}%`,
-            change: "Won / Total %",
-            changeText: "of total pipeline processed",
-            changeColor: "text-green-600",
-            chartOptions: {
-                chart: { type: "area", sparkline: { enabled: true } },
-                stroke: { curve: "smooth", width: 2 },
-                colors: ["#10b981"],
-                fill: {
-                    type: "gradient",
-                    gradient: { opacityFrom: 0.6, opacityTo: 0.1 },
+            series: [
+                {
+                    name: "Pending Sales",
+                    data: [15, 25, 35, 40, 38, 30, 28],
                 },
-                series: [
-                    { name: "Conversion", data: [40, 45, 52, 58, 62, 65, ratio] },
-                ],
-                tooltip: { enabled: false },
-            },
+            ],
+            tooltip: { enabled: false },
         },
-    ];
-});
+    },
+    {
+        title: "Check-In Conversion Ratio",
+        subtitle: "Present Attendees at Gates",
+        value: `${props.metrics.global_check_in_ratio}%`,
+        change: "Presence Rate",
+        changeText: "of total tickets distributed",
+        changeColor: "text-green-600",
+        chartOptions: {
+            chart: { type: "area", sparkline: { enabled: true } },
+            stroke: { curve: "smooth", width: 2 },
+            colors: ["#10b981"],
+            fill: {
+                type: "gradient",
+                gradient: { opacityFrom: 0.6, opacityTo: 0.1 },
+            },
+            series: [
+                { name: "Arrivals", data: [12, 18, 22, 25, 30, 35, 40] },
+            ],
+            tooltip: { enabled: false },
+        },
+    },
+]);
 
-// 3. User Role Distribution Funnel Chart (Reconfigured as Leads by B2B Buyer Type)
+// 3. User Role Distribution Funnel Chart (Dynamic)
 const funnelChart = computed(() => {
-    const buyers = props.metrics.segments.buyerTypes.map(b => b.buyer_name);
-    const counts = props.metrics.segments.buyerTypes.map(b => b.count);
+    const roles = props.metrics.user_role_distribution.map(r => r.role_name);
+    const counts = props.metrics.user_role_distribution.map(r => r.user_count);
 
     return {
         series: [
-            { name: "Leads", data: counts }
+            { name: "Users", data: counts }
         ],
         chartOptions: {
             chart: {
@@ -163,7 +145,7 @@ const funnelChart = computed(() => {
             colors: ["#465fff"],
             dataLabels: { enabled: true },
             xaxis: {
-                categories: buyers,
+                categories: roles,
                 labels: {
                     style: { colors: "#373d3f", fontFamily: "Outfit, sans-serif" },
                 },
@@ -183,42 +165,42 @@ const funnelChart = computed(() => {
     };
 });
 
-// 4. Most Read Articles Performance Chart (Reconfigured as Top Shortlisted Properties)
+// 4. Most Read Articles Performance Chart (Dynamic)
 const salesChart = computed(() => {
-    const propertyNames = props.metrics.popularity.properties.map(p => p.name.substring(0, 10) + '...');
-    const shortlistCounts = props.metrics.popularity.properties.map(p => p.shortlist_count);
+    const titles = props.metrics.most_read_articles.map(a => a.title.substring(0, 10) + '...');
+    const views = props.metrics.most_read_articles.map(a => a.view_count);
 
     return {
-        series: [{ name: "Shortlists", data: shortlistCounts }],
+        series: [{ name: "Views", data: views }],
         chartOptions: {
             chart: { type: "bar", height: 200, sparkline: { enabled: true } },
             plotOptions: { bar: { borderRadius: 5, columnWidth: "40%" } },
             colors: ["#465fff"],
             xaxis: {
-                categories: propertyNames,
+                categories: titles,
             },
             tooltip: { enabled: true, x: { show: true } },
         },
     };
 });
 
-// 5. System Highlights Feed (Reconfigured as Representation Footprint Logs)
+// 5. System Highlights Feed (Replaces static activities)
 const activities = computed(() => [
     {
-        userImage: "/logo.png",
-        userName: "Represented Properties",
-        action: "successfully active on directory",
-        details: `${props.metrics.popularity.inventory.properties} properties mapped across regions`,
-        timestamp: "Live",
-        eventType: "Properties",
+        userImage: "/images/user/user-01.jpg",
+        userName: "System Monitor",
+        action: "scanned total venues successfully",
+        details: `${props.metrics.total_venues} venues currently mapped`,
+        timestamp: "Active",
+        eventType: "Database",
         eventIcon: true,
     },
     {
-        userImage: "/favicon.png",
-        userName: "Represented Destinations",
-        action: "active parent destinations",
-        details: `${props.metrics.popularity.inventory.destinations} DMO portals connected`,
-        timestamp: "Live",
+        userImage: "/images/user/user-03.jpg",
+        userName: "Ticketing Engine",
+        action: "recorded successful orders",
+        details: `${props.metrics.total_tickets_distributed} tickets issued`,
+        timestamp: "Active",
     }
 ]);
 </script>
@@ -232,22 +214,20 @@ const activities = computed(() => [
 
         <div class="space-y-5 sm:space-y-6">
 
-            <!-- Destination Scoping Filter Header -->
+            <!-- Event Scoping Filter Header -->
             <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
                 <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div>
-                        <h3 class="text-base font-bold text-gray-800 dark:text-white">Filter Dashboard by Destination
-                        </h3>
-                        <p class="text-xs text-gray-400 mt-1">Scope the RFP pipeline conversions and shortlisted metric
-                            metrics
+                        <h3 class="text-base font-bold text-gray-800 dark:text-white">Filter Dashboard by Event</h3>
+                        <p class="text-xs text-gray-400 mt-1">Scope the ticketing conversion and gate arrival metrics
                             dynamically.</p>
                     </div>
                     <div class="flex items-center gap-2">
                         <select v-model="selectedEventFilter" @change="filterDashboardByEvent"
                             class="rounded-xl border border-gray-200 text-sm bg-white dark:bg-gray-900 dark:border-gray-800 dark:text-white px-4 py-2">
-                            <option value="">Global (All Regions)</option>
-                            <option v-for="dest in ticketed_events" :key="dest.id" :value="dest.id">
-                                {{ dest.name }}
+                            <option value="">Global (All Events)</option>
+                            <option v-for="event in ticketed_events" :key="event.id" :value="event.id">
+                                {{ event.title }}
                             </option>
                         </select>
                     </div>
@@ -323,13 +303,13 @@ const activities = computed(() => [
                             </div>
                         </div>
 
-                        <!-- B2B Buyer Type Distribution Chart -->
+                        <!-- User Role Distribution Funnel Card -->
                         <div
                             class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
                             <div class="mb-6 flex justify-between">
                                 <div>
                                     <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                        Lead Distribution by B2B Buyer Profile
+                                        User Distribution by Role
                                     </h3>
                                 </div>
                             </div>
@@ -341,12 +321,12 @@ const activities = computed(() => [
                             </div>
                         </div>
 
-                        <!-- Recent RFP Pipeline Submissions Table -->
+                        <!-- Recent Invoices Table (Dynamic Orders) -->
                         <div
                             class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
                             <div class="px-6 py-4">
                                 <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                    Recent RFP Submissions
+                                    Recent Ticket Orders
                                 </h3>
                             </div>
                             <div class="custom-scrollbar overflow-x-auto">
@@ -355,53 +335,56 @@ const activities = computed(() => [
                                         <tr class="bg-gray-50 dark:bg-gray-900">
                                             <th
                                                 class="px-6 py-4 text-left text-sm font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">
-                                                RFP Reference
+                                                Order Ref
                                             </th>
                                             <th
                                                 class="px-6 py-4 text-left text-sm font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">
-                                                Submission Date
+                                                Order Date
                                             </th>
                                             <th
                                                 class="px-6 py-4 text-left text-sm font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">
-                                                Buyer Contact Email
+                                                Attendee Email
                                             </th>
                                             <th
                                                 class="px-6 py-4 text-left text-sm font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">
-                                                Proposed Budget
+                                                Amount
                                             </th>
                                             <th
                                                 class="px-6 py-4 text-left text-sm font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">
-                                                Pipeline Status
+                                                Status
                                             </th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
-                                        <tr v-for="rfpItem in metrics.recent_rfps" :key="rfpItem.reference">
+                                        <tr v-for="invoice in metrics.recent_orders" :key="invoice.reference">
                                             <td
-                                                class="px-6 py-4 text-left text-sm whitespace-nowrap text-gray-700 dark:text-gray-400 font-bold font-mono">
-                                                {{ rfpItem.reference }}
+                                                class="px-6 py-4 text-left text-sm whitespace-nowrap text-gray-700 dark:text-gray-400 font-bold">
+                                                {{ invoice.reference }}
                                             </td>
                                             <td
                                                 class="px-6 py-4 text-left text-sm whitespace-nowrap text-gray-700 dark:text-gray-400">
-                                                {{ rfpItem.close_date }}
+                                                {{ invoice.close_date }}
                                             </td>
                                             <td
                                                 class="px-6 py-4 text-left text-sm whitespace-nowrap text-gray-700 dark:text-gray-400">
-                                                {{ rfpItem.user }}
+                                                {{ invoice.user }}
                                             </td>
                                             <td
                                                 class="px-6 py-4 text-left text-sm whitespace-nowrap text-gray-700 dark:text-gray-400 font-bold">
-                                                {{ rfpItem.amount }}
+                                                {{ invoice.amount }}
                                             </td>
                                             <td class="px-6 py-4 text-left">
                                                 <span class="rounded-full px-2 py-0.5 font-medium text-theme-xs" :class="{
                                                     'bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500':
-                                                        rfpItem.status === 'Won',
+                                                        invoice.status ===
+                                                        'Complete',
                                                     'bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-warning-500':
-                                                        ['New', 'Contacted', 'Quoted'].includes(rfpItem.status),
+                                                        invoice.status ===
+                                                        'Pending',
                                                     'bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500':
-                                                        rfpItem.status === 'Lost',
-                                                }">{{ rfpItem.status }}</span>
+                                                        invoice.status ===
+                                                        'Cancelled',
+                                                }">{{ invoice.status }}</span>
                                             </td>
                                         </tr>
                                     </tbody>
@@ -413,20 +396,20 @@ const activities = computed(() => [
 
                 <!-- Right Column -->
                 <div class="space-y-5 sm:space-y-6 xl:col-span-5 2xl:col-span-4">
-                    <!-- Member Shortlist view chart -->
+                    <!-- Article View Performance Card -->
                     <div
                         class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
                         <div class="mb-6 flex justify-between">
                             <div>
                                 <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                    Represented Member Analytics
+                                    News Performance
                                 </h3>
                             </div>
                         </div>
                         <div class="flex w-full items-center gap-0.5 rounded-lg bg-gray-100 p-0.5 dark:bg-gray-900">
                             <button
                                 class="text-sm w-full rounded-md px-3 py-2 font-medium bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm">
-                                Shortlist Inquiries
+                                Article Reads
                             </button>
                         </div>
                         <div class="mt-4">
@@ -434,8 +417,7 @@ const activities = computed(() => [
                                 <div
                                     class="grid grid-cols-2 justify-between gap-10 divide-x divide-gray-100 rounded-xl border border-gray-100 bg-white py-4 dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-800/[0.03]">
                                     <div class="px-5">
-                                        <span class="block text-sm text-gray-500 dark:text-gray-400">Total
-                                            Properties</span>
+                                        <span class="block text-sm text-gray-500 dark:text-gray-400">Total Venues</span>
                                         <div class="mt-1 flex items-center gap-2">
                                             <span
                                                 class="bg-success-50 dark:bg-success-500/15 text-success-600 inline-flex size-5 items-center justify-center rounded-full"><svg
@@ -446,16 +428,16 @@ const activities = computed(() => [
                                                         fill="currentColor"></path>
                                                 </svg></span>
                                             <h4 class="text-xl font-semibold text-gray-800 dark:text-white/90">
-                                                {{ metrics.popularity.inventory.properties }}
+                                                {{ metrics.total_venues }}
                                             </h4>
                                         </div>
                                     </div>
                                     <div class="px-5">
                                         <span class="block text-sm text-gray-500 dark:text-gray-400">Total
-                                            Destinations</span>
+                                            Articles</span>
                                         <div class="mt-1 flex items-center gap-2">
                                             <h4 class="text-xl font-semibold text-gray-800 dark:text-white/90">
-                                                {{ metrics.popularity.inventory.destinations }}
+                                                {{ metrics.total_news_coverage }}
                                             </h4>
                                         </div>
                                     </div>
@@ -463,11 +445,10 @@ const activities = computed(() => [
                                 <div class="rounded-xl border border-gray-100 px-5 py-4 dark:border-gray-800">
                                     <div class="mb-3 flex items-start justify-between">
                                         <div>
-                                            <span
-                                                class="text-sm font-medium text-gray-500 dark:text-gray-400">Shortlisted
-                                                Metrics</span>
+                                            <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Trending
+                                                Reads</span>
                                             <h3 class="text-sm font-semibold text-gray-800 dark:text-white/90 mt-1">
-                                                Top Performing Properties
+                                                Top Editorial Articles
                                             </h3>
                                         </div>
                                     </div>
@@ -482,13 +463,13 @@ const activities = computed(() => [
                         </div>
                     </div>
 
-                    <!-- System Indicators timeline -->
+                    <!-- Activities Card (System Logs) -->
                     <div
                         class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
                         <div class="mb-6 flex justify-between">
                             <div>
                                 <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                    Directory Footprint Status
+                                    System Alerts
                                 </h3>
                             </div>
                         </div>
@@ -499,7 +480,7 @@ const activities = computed(() => [
                             }">
                                 <div class="z-10 flex-shrink-0">
                                     <img :src="activity.userImage" :alt="activity.userName"
-                                        class="size-10 rounded-full object-contain bg-gray-150 p-1 ring-4 ring-white dark:ring-gray-800" />
+                                        class="size-10 rounded-full object-cover ring-4 ring-white dark:ring-gray-800" />
                                 </div>
                                 <div class="ml-4">
                                     <div v-if="activity.eventIcon" class="mb-1 flex items-center gap-1">

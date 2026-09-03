@@ -101,18 +101,7 @@ const navigateTo = (path) => {
 
             <!-- Desktop Actions -->
             <div class="hidden lg:flex items-center gap-3">
-                <button aria-label="Search" :class="[
-                    'grid place-items-center h-10 w-10 rounded-full border transition-colors',
-                    transparent ? 'border-white/25 text-white hover:bg-white/10' : 'border-ink/20 text-ink hover:border-primary'
-                ]">
-                    <Search class="h-4 w-4" />
-                </button>
-                <Link href="/portfolio" :class="[
-                    'text-sm hidden xl:inline',
-                    transparent ? 'text-white/80 hover:text-white' : 'text-ink/70 hover:text-ink'
-                ]">
-                    Member Login
-                </Link>
+
 
                 <Link v-if="count > 0" href="/rfp" :class="[
                     'text-sm flex items-center gap-1.5',

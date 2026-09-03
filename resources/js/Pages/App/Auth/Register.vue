@@ -111,7 +111,7 @@ const submit = () => {
                         <CommonGridShape />
                         <div class="flex max-w-xs flex-col items-center">
                             <Link :href="route('home')" class="mb-4 block">
-                                <img src="/logo-white.png" alt="Logo" class="w-48" />
+                                <img src="/logo_white.png" alt="Logo" class="w-48" />
                             </Link>
                             <p class="text-center text-gray-400 dark:text-white/60">
                                 Powering professional events with EventPress.

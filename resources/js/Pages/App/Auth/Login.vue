@@ -13,6 +13,8 @@ import InputLabel from '@/Components/Admin/InputLabel.vue'
 import PrimaryButton from '@/Components/Admin/PrimaryButton.vue'
 import TextInput from '@/Components/Admin/TextInput.vue'
 
+import { Eye, EyeOff } from "lucide-vue-next"
+
 defineProps({
     canResetPassword: {
         type: Boolean,
@@ -50,7 +52,7 @@ const submit = () => {
                 <!-- Left Column (Form) -->
                 <div class="flex w-full flex-1 flex-col lg:w-1/2">
                     <div class="mx-auto w-full max-w-md pt-10">
-                        <Link :href="route('home')"
+                        <a :href="route('home')"
                             class="inline-flex items-center text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
                             <svg class="stroke-current" xmlns="http://www.w3.org/2000/svg" width="20" height="20"
                                 viewBox="0 0 20 20" fill="none">
@@ -58,7 +60,7 @@ const submit = () => {
                                     stroke-linecap="round" stroke-linejoin="round" />
                             </svg>
                             Back to home
-                        </Link>
+                        </a>
                     </div>
 
                     <div class="mx-auto flex w-full max-w-md flex-1 flex-col justify-center">
@@ -96,18 +98,12 @@ const submit = () => {
                                                 class="pr-11" v-model="form.password" required
                                                 autocomplete="current-password" placeholder="Enter your password" />
                                             <span @click="togglePasswordVisibility"
-                                                class="absolute top-1/2 right-4 z-30 -translate-y-1/2 cursor-pointer text-gray-500 dark:text-gray-400">
-                                                <!-- Dynamic Eye Icon -->
-                                                <svg v-if="!showPassword" class="fill-current" width="20" height="20"
-                                                    viewBox="0 0 20 20">
-                                                    <path
-                                                        d="M10 13.8c-2.7 0-5.1-1.7-6-4.1.9-2.4 3.3-4.1 6-4.1s5.1 1.7 6 4.1c-.9 2.4-3.3 4.1-6 4.1zm0-9.8C6.5 4 3.5 6.3 2.4 9.5c-.1.1-.1.3 0 .4 1.1 3.2 4.1 5.4 7.6 5.4s6.5-2.2 7.6-5.4c.1-.1.1-.3 0-.4C16.5 6.3 13.5 4 10 4z" />
-                                                </svg>
-                                                <svg v-else class="fill-current" width="20" height="20"
-                                                    viewBox="0 0 20 20">
-                                                    <path
-                                                        d="M4.6 3.6c-.3-.3-.8-.3-1.1 0-.3.3-.3.8 0 1.1l1.3 1.3C3.7 6.8 2.9 8.1 2.4 9.5c-.1.1-.1.3 0 .4 1.1 3.2 4.1 5.4 7.6 5.4 1.3 0 2.4-.3 3.5-.8l1.9 1.9c.3.3.8.3 1.1 0 .3-.3.3-.8 0-1.1L4.6 3.6z" />
-                                                </svg>
+                                                class="absolute top-1/2 right-4 z-30 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors select-none">
+                                                <!-- Explicitly set fill="none" to prevent global fill-current overrides -->
+                                                <EyeOff v-if="!showPassword" class="h-5 w-5" fill="none"
+                                                    stroke="currentColor" stroke-width="2" />
+                                                <Eye v-else class="h-5 w-5" fill="none" stroke="currentColor"
+                                                    stroke-width="2" />
                                             </span>
                                         </div>
                                         <InputError class="mt-2" :message="form.errors.password" />
@@ -122,7 +118,7 @@ const submit = () => {
                                         </label>
 
                                         <Link v-if="canResetPassword" :href="route('password.request')"
-                                            class="text-sm font-normal text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                                            class="text-sm font-normal text-brand-600 hover:text-brand-700 dark:text-brand-400">
                                             Forgot your password?
                                         </Link>
                                     </div>
@@ -138,11 +134,7 @@ const submit = () => {
 
                             <div class="mt-5 text-center sm:text-start">
                                 <p class="text-sm font-normal text-gray-700 dark:text-gray-400">
-                                    Don't have an account?
-                                    <Link :href="route('register')"
-                                        class="text-brand-500 hover:text-brand-600 dark:text-brand-400 font-medium">
-                                        Sign Up
-                                    </Link>
+                                    Admin and staff only. Please contact the system administrator if you need access.
                                 </p>
                             </div>
                         </div>
@@ -150,12 +142,12 @@ const submit = () => {
                 </div>
 
                 <!-- Right Column (Branding) -->
-                <div class="relative hidden h-full w-full items-center bg-slate-950 lg:grid lg:w-1/2 dark:bg-white/5">
+                <div class="relative hidden h-full w-full items-center bg-[#173f35] lg:grid lg:w-1/2 dark:bg-white/5">
                     <div class="z-1 flex items-center justify-center">
                         <CommonGridShape />
                         <div class="flex max-w-xs flex-col items-center">
                             <Link :href="route('home')" class="mb-4 block">
-                                <img src="/logo-white.png" alt="Logo" class="w-48" />
+                                <img src="/logo_white.png" alt="Logo" class="w-48" />
                             </Link>
                             <p class="text-center text-gray-400 dark:text-white/60">
                                 Secure Admin Dashboard Management System

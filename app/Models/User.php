@@ -24,6 +24,7 @@ class User extends Authenticatable
         'company',
         'website_url',
         'is_active',
+        'avatar_url',
     ];
 
     protected $hidden = [
@@ -44,12 +45,6 @@ class User extends Authenticatable
     public function role()
     {
         return $this->belongsTo(\Spatie\Permission\Models\Role::class, 'role_id');
-    }
-
-    // Relationship to orders
-    public function orders()
-    {
-        return $this->hasMany(Order::class);
     }
 
     // Relationship to subscriptions
