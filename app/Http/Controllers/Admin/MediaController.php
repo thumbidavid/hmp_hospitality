@@ -12,7 +12,8 @@ use Intervention\Image\Laravel\Facades\Image;
 
 class MediaController extends Controller
 {
-    private const MAX_IMAGE_BYTES = 1024 * 1024; // 1MB target
+    private const MAX_IMAGE_BYTES = 1024 * 1024;  // compress down to 1MB
+    private const MAX_STARTING_WIDTH = 2000;       // pre-resize cap in pixels
 
     /**
      * Store an uploaded file in R2 and register it in the database.
@@ -20,7 +21,7 @@ class MediaController extends Controller
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'file' => ['required', 'file', 'max:10240'], // 10MB standard limit
+            'file' => ['required', 'file', 'max:20480'], // 20MB raw upload limit
         ]);
 
         $file = $request->file('file');
@@ -62,9 +63,19 @@ class MediaController extends Controller
 
         $image = Image::read($file->getRealPath());
 
-        // PNGs often compress far better as JPEG when quality doesn't need
-        // to preserve transparency. Encode to JPEG for the quality-stepped pass.
-        $extension = $mime === 'image/png' && !$this->hasTransparency($image) ? 'jpg' : $this->extensionFor($mime);
+        // Pre-resize: for large uploads (phone/DSLR photos), most of the
+        // size comes from raw pixel count, not encoding quality. Cap the
+        // starting width before quality-stepping so we're not wasting
+        // passes trying to quality-compress a 6000px-wide image.
+        if ($image->width() > self::MAX_STARTING_WIDTH) {
+            $image = $image->scaleDown(width: self::MAX_STARTING_WIDTH);
+        }
+
+        $extension = $mime === 'image/png' && !$this->hasTransparency($image)
+            ? 'jpg'
+            : $this->extensionFor($mime);
+
+        $binary = null;
 
         // Step quality down until under the target size, but don't go
         // below 60 — beyond that "smaller" starts meaning "visibly worse".
@@ -80,8 +91,8 @@ class MediaController extends Controller
             }
         }
 
-        // Still too big at quality 60: fall back to resizing dimensions down
-        // in steps while keeping the last acceptable quality encode.
+        // Still too big at quality 60: keep shrinking dimensions further,
+        // re-encoding at quality 75 each step, until under the target.
         $width = $image->width();
         while (strlen($binary) > self::MAX_IMAGE_BYTES && $width > 640) {
             $width = (int) ($width * 0.85);
@@ -103,7 +114,6 @@ class MediaController extends Controller
 
     private function hasTransparency($image): bool
     {
-        // Cheap heuristic: check a handful of corner/edge pixels for alpha < 255.
         try {
             $core = $image->core()->native();
             return imageistruecolor($core) && imagecolorat($core, 0, 0) >> 24 !== 0;
