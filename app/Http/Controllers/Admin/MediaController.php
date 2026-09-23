@@ -10,8 +10,6 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Intervention\Image\Drivers\Gd\Driver as GdDriver;
-use Intervention\Image\ImageManager;
 
 class MediaController extends Controller
 {
@@ -47,7 +45,7 @@ class MediaController extends Controller
             Log::info('[MediaUpload] File is image, starting compression pipeline...');
 
             try {
-                [$fileContent, $fileName, $mimeType] = $this->compressImageToTarget($file);
+                [$fileContent, $fileName, $mimeType] = $this->compressImage($file);
                 $path = 'v2/media/' . Str::uuid() . '.webp';
                 $fileSize = strlen($fileContent);
 
@@ -58,10 +56,10 @@ class MediaController extends Controller
 
                 Storage::disk('r2')->put($path, $fileContent);
             } catch (\Throwable $e) {
-                // Failsafe: if compression fails, log and fallback to storing the original file
-                Log::error('[MediaUpload] Compression failed, saving uncompressed file as fallback', [
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString(),
+                // Log the exact error line and message
+                Log::error('[MediaUpload] Compression error: ' . $e->getMessage(), [
+                    'exception' => get_class($e),
+                    'file'      => $e->getFile() . ':' . $e->getLine(),
                 ]);
 
                 $path = $file->store('v2/media', 'r2');
@@ -107,68 +105,131 @@ class MediaController extends Controller
     }
 
     /**
-     * Compress and downscale image to <= 1MB without perceptual quality loss.
+     * Compress using Intervention Image if available, or native PHP GD as bulletproof fallback.
      *
      * @return array{0: string, 1: string, 2: string}
      */
-    private function compressImageToTarget(UploadedFile $file): array
+    private function compressImage(UploadedFile $file): array
     {
-        // Intervention Image v3 driver constructor
-        $manager = new ImageManager(new GdDriver());
-        $image = $manager->read($file->getRealPath());
+        // 1. Try Intervention Image (v3 or v2)
+        if (class_exists(\Intervention\Image\ImageManager::class)) {
+            try {
+                return $this->compressViaIntervention($file);
+            } catch (\Throwable $ex) {
+                Log::warning('[MediaUpload] Intervention failed (' . $ex->getMessage() . '), attempting native GD fallback...');
+            }
+        }
 
-        $originalWidth = $image->width();
-        $originalHeight = $image->height();
+        // 2. Pure Native PHP GD (Zero dependency fallback)
+        return $this->compressViaNativeGd($file);
+    }
 
-        // 1. Cap excessive dimensions to 2560px max width/height (sharp on 4K/Retina displays)
-        $image->scaleDown(width: 2560, height: 2560);
+    /**
+     * Intervention Image compression.
+     */
+    private function compressViaIntervention(UploadedFile $file): array
+    {
+        // Check for v3 Driver class or fallback to string
+        if (class_exists(\Intervention\Image\Drivers\Gd\Driver::class)) {
+            $manager = new \Intervention\Image\ImageManager(new \Intervention\Image\Drivers\Gd\Driver());
+        } elseif (class_exists(\Intervention\Image\Drivers\Imagick\Driver::class)) {
+            $manager = new \Intervention\Image\ImageManager(new \Intervention\Image\Drivers\Imagick\Driver());
+        } else {
+            $manager = new \Intervention\Image\ImageManager(['driver' => 'gd']);
+        }
 
-        Log::info('[MediaUpload] Dimensions checked/scaled', [
-            'from' => "{$originalWidth}x{$originalHeight}",
-            'to'   => "{$image->width()}x{$image->height()}",
-        ]);
+        // v3 uses read(), v2 uses make()
+        $image = method_exists($manager, 'read')
+            ? $manager->read($file->getRealPath())
+            : $manager->make($file->getRealPath());
 
-        // 2. Encode to WebP starting at high quality (85%)
+        // Cap dimensions to 2560px
+        if (method_exists($image, 'scaleDown')) {
+            $image->scaleDown(width: 2560, height: 2560);
+        } else {
+            $image->resize(2560, 2560, function ($c) {
+                $c->aspectRatio();
+                $c->upsize();
+            });
+        }
+
+        // Loop quality down to <= 1MB
         $quality = 85;
         $minQuality = 55;
         $encoded = null;
 
         do {
-            $encoded = (string) $image->toWebp($quality);
-            $currentBytes = strlen($encoded);
+            $encoded = method_exists($image, 'toWebp')
+                ? (string) $image->toWebp($quality)
+                : (string) $image->encode('webp', $quality);
 
-            Log::info('[MediaUpload] WebP attempt', [
-                'quality'   => $quality,
-                'size_kb'   => round($currentBytes / 1024, 2) . ' KB',
-                'under_1mb' => $currentBytes <= self::MAX_TARGET_BYTES,
-            ]);
-
-            // Stop immediately when under 1MB or reached quality floor
-            if ($currentBytes <= self::MAX_TARGET_BYTES || $quality <= $minQuality) {
+            if (strlen($encoded) <= self::MAX_TARGET_BYTES || $quality <= $minQuality) {
                 break;
             }
-
             $quality -= 5;
         } while ($quality >= $minQuality);
 
-        // 3. Fallback: If still above 1MB (exceptionally complex textures), downscale dimensions
-        while (strlen($encoded) > self::MAX_TARGET_BYTES && $image->width() > 1200) {
-            Log::warning('[MediaUpload] Still above 1MB, adjusting pixel bounds...');
+        $baseName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        return [$encoded, $baseName . '.webp', 'image/webp'];
+    }
 
-            $newWidth = (int) ($image->width() * 0.85);
-            $newHeight = (int) ($image->height() * 0.85);
-            $image->resize($newWidth, $newHeight);
-            $encoded = (string) $image->toWebp(75);
+    /**
+     * Pure Native PHP GD compression — no library dependencies.
+     */
+    private function compressViaNativeGd(UploadedFile $file): array
+    {
+        $realPath = $file->getRealPath();
+        [$origWidth, $origHeight, $imageType] = getimagesize($realPath);
 
-            Log::info('[MediaUpload] Post-bound reduction', [
-                'new_resolution' => "{$newWidth}x{$newHeight}",
-                'size_kb'        => round(strlen($encoded) / 1024, 2) . ' KB',
-            ]);
+        // Load image resource
+        $src = match ($imageType) {
+            IMAGETYPE_JPEG => imagecreatefromjpeg($realPath),
+            IMAGETYPE_PNG  => imagecreatefrompng($realPath),
+            IMAGETYPE_WEBP => imagecreatefromwebp($realPath),
+            IMAGETYPE_BMP  => imagecreatefrombmp($realPath),
+            default        => throw new \Exception('Unsupported GD image type: ' . $imageType),
+        };
+
+        if (!$src) {
+            throw new \Exception('Failed to create GD image resource.');
         }
 
-        $baseName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-        $newFileName = $baseName . '.webp';
+        // Handle alpha transparency
+        imagealphablending($src, true);
+        imagesavealpha($src, true);
 
-        return [$encoded, $newFileName, 'image/webp'];
+        // Scale down to max 2560px
+        $maxWidth = 2560;
+        $maxHeight = 2560;
+        $ratio = min($maxWidth / $origWidth, $maxHeight / $origHeight, 1.0);
+        $newWidth = (int) round($origWidth * $ratio);
+        $newHeight = (int) round($origHeight * $ratio);
+
+        $dest = imagecreatetruecolor($newWidth, $newHeight);
+        imagealphablending($dest, false);
+        imagesavealpha($dest, true);
+        imagecopyresampled($dest, $src, 0, 0, 0, 0, $newWidth, $newHeight, $origWidth, $origHeight);
+        imagedestroy($src);
+
+        // Quality reduction loop
+        $quality = 85;
+        $minQuality = 55;
+        $output = '';
+
+        do {
+            ob_start();
+            imagewebp($dest, null, $quality);
+            $output = ob_get_clean();
+
+            if (strlen($output) <= self::MAX_TARGET_BYTES || $quality <= $minQuality) {
+                break;
+            }
+            $quality -= 5;
+        } while ($quality >= $minQuality);
+
+        imagedestroy($dest);
+
+        $baseName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        return [$output, $baseName . '.webp', 'image/webp'];
     }
 }

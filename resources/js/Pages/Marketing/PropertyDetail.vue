@@ -110,36 +110,36 @@ defineOptions({
             </div>
 
             <div class="container-wide mt-6">
-                <!-- Outer 2-Column Grid -->
-                <div class="grid gap-4 lg:grid-cols-[2.5fr_1fr] lg:h-[28rem]">
+                <!-- Outer 2-Column Grid: Fixed height and strict overflow clipping -->
+                <div class="grid gap-4 lg:grid-cols-[2.5fr_1fr] h-[22rem] sm:h-[26rem] lg:h-[28rem] overflow-hidden">
 
-                    <!-- Main Active Image View (Left Column - Clickable) -->
+                    <!-- Main Active Image View (Left Column) -->
                     <Reveal
-                        class="relative h-64 lg:h-full overflow-hidden rounded-3xl shadow-sm bg-muted cursor-zoom-in">
+                        class="relative h-full w-full overflow-hidden rounded-3xl shadow-sm bg-muted cursor-zoom-in min-h-0">
                         <img :src="galleryImages[active] || p.image" :alt="p.name" @click="openLightbox(active)"
-                            class="h-full w-full object-cover transition-all duration-500 hover:scale-[1.01]" />
+                            class="h-full w-full object-cover object-center transition-all duration-500 hover:scale-[1.01]" />
                     </Reveal>
 
-                    <!-- Sidebar Thumbnail list (Right Column - Constrained to 2 slots) -->
-                    <div class="grid gap-4 grid-cols-2 lg:grid-cols-1">
+                    <!-- Sidebar Thumbnail list (Right Column): Constrained to exactly 2 equal rows -->
+                    <div class="grid gap-4 grid-cols-2 lg:grid-cols-1 lg:grid-rows-2 h-full min-h-0 overflow-hidden">
 
                         <!-- Thumbnail 1 (Always maps to Index 1) -->
                         <button v-if="galleryImages[1]" @click="active = 1" :class="[
-                            'relative overflow-hidden rounded-2xl h-24 lg:h-full cursor-pointer transition-all shadow-sm border border-border bg-muted',
+                            'relative h-full w-full min-h-0 overflow-hidden rounded-2xl cursor-pointer transition-all shadow-sm border border-border bg-muted',
                             active === 1 ? 'ring-2 ring-primary' : ''
                         ]">
-                            <img :src="galleryImages[1]" alt="" class="h-full w-full object-cover" />
+                            <img :src="galleryImages[1]" alt="" class="h-full w-full object-cover object-center" />
                         </button>
 
-                        <!-- Thumbnail 2 (Launches slideshow if there are hidden images, otherwise acts as standard button) -->
+                        <!-- Thumbnail 2 -->
                         <button v-if="galleryImages[2]" @click="galleryImages.length > 3 ? openLightbox(2) : active = 2"
                             :class="[
-                                'relative overflow-hidden rounded-2xl h-24 lg:h-full cursor-pointer transition-all shadow-sm border border-border bg-muted',
+                                'relative h-full w-full min-h-0 overflow-hidden rounded-2xl cursor-pointer transition-all shadow-sm border border-border bg-muted',
                                 active === 2 ? 'ring-2 ring-primary' : ''
                             ]">
-                            <img :src="galleryImages[2]" alt="" class="h-full w-full object-cover" />
+                            <img :src="galleryImages[2]" alt="" class="h-full w-full object-cover object-center" />
 
-                            <!-- Tint Overlay & Count indicator (Visible if more than 3 images exist total) -->
+                            <!-- Tint Overlay & Count indicator -->
                             <div v-if="galleryImages.length > 3"
                                 class="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white select-none transition-opacity hover:bg-black/50">
                                 <span class="font-heading text-xl lg:text-3xl font-bold">
@@ -162,7 +162,7 @@ defineOptions({
                 <Reveal>
                     <span class="eyebrow">{{ p.type }} · {{ p.collection }}</span>
                     <h1 class="mt-3 font-heading text-4xl sm:text-5xl lg:text-6xl leading-tight text-balance">{{ p.name
-                    }}</h1>
+                        }}</h1>
                     <p class="mt-3 flex items-center gap-1.5 text-muted-foreground">
                         <MapPin class="h-4 w-4 text-primary" /> {{ p.city }}, {{ p.country }} — {{ p.region }}
                     </p>
