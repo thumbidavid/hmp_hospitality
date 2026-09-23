@@ -7,6 +7,7 @@ use App\Models\Media;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Intervention\Image\ImageManager;
@@ -21,26 +22,42 @@ class MediaController extends Controller
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'file' => ['required', 'file', 'max:20480'], // Allow uploads up to 20MB prior to compression
+            'file' => ['required', 'file', 'max:20480'], // Allow uploads up to 20MB before compression
         ]);
 
         /** @var UploadedFile $file */
         $file = $request->file('file');
         $mimeType = $file->getClientMimeType();
+        $originalSize = $file->getSize();
+        $originalName = $file->getClientOriginalName();
+
+        Log::info('[MediaUpload] Upload received', [
+            'filename'      => $originalName,
+            'mime_type'     => $mimeType,
+            'size_bytes'    => $originalSize,
+            'size_formatted' => round($originalSize / 1024 / 1024, 2) . ' MB',
+        ]);
 
         // Check if the uploaded file is an image
         if ($this->isCompressibleImage($mimeType)) {
-            [$fileContent, $fileName, $mimeType, $extension] = $this->compressImageToTarget($file);
-            $path = 'v2/media/' . Str::uuid() . '.' . $extension;
+            Log::info('[MediaUpload] File identified as image, beginning compression pipeline...');
+
+            [$fileContent, $fileName, $mimeType] = $this->compressImageToTarget($file);
+            $path = 'v2/media/' . Str::uuid() . '.webp';
             $fileSize = strlen($fileContent);
 
-            // Store compressed image in R2
+            Log::info('[MediaUpload] Writing compressed WebP image to R2', [
+                'path' => $path,
+                'size' => round($fileSize / 1024, 2) . ' KB',
+            ]);
+
             Storage::disk('r2')->put($path, $fileContent);
         } else {
-            // PDF or regular documents: store directly as-is
+            Log::info('[MediaUpload] File is a document (non-image), bypassing compression.');
+
             $path = $file->store('v2/media', 'r2');
-            $fileName = $file->getClientOriginalName();
-            $fileSize = $file->getSize();
+            $fileName = $originalName;
+            $fileSize = $originalSize;
         }
 
         $url = Storage::disk('r2')->url($path);
@@ -54,7 +71,11 @@ class MediaController extends Controller
             'size'      => $fileSize,
         ]);
 
-        // Return the ID expected by FileUploader.vue
+        Log::info('[MediaUpload] Upload complete and stored in database', [
+            'id'  => $media->id,
+            'url' => $media->url,
+        ]);
+
         return response()->json([
             'id'  => $media->id,
             'url' => $media->url,
@@ -75,59 +96,74 @@ class MediaController extends Controller
     }
 
     /**
-     * Compress and constrain an image to stay <= 1MB without perceptual quality loss.
-     * Compatible with Intervention Image v2.
+     * Compress and constrain an image to stay <= 1MB without perceptual quality loss (v3).
      *
-     * @return array{0: string, 1: string, 2: string, 3: string}
+     * @return array{0: string, 1: string, 2: string}
      */
     private function compressImageToTarget(UploadedFile $file): array
     {
-        $manager = new ImageManager(['driver' => 'gd']);
-        $image = $manager->make($file->getRealPath());
+        $manager = ImageManager::gd();
+        $image = $manager->read($file->getRealPath());
 
-        // Auto-orient based on camera EXIF data (prevents phone photos rotating sideways)
-        if (method_exists($image, 'orientate')) {
-            $image->orientate();
-        }
+        $originalWidth = $image->width();
+        $originalHeight = $image->height();
 
-        // 1. Cap dimensions at max 2560px preserving aspect ratio (never upscales smaller images)
-        $image->resize(2560, 2560, function ($constraint) {
-            $constraint->aspectRatio();
-            $constraint->upsize();
-        });
+        // 1. Cap excessive dimensions to 2560px max width/height
+        $image->scaleDown(width: 2560, height: 2560);
 
-        // Determine target format (WebP if PHP GD supports it, otherwise fallback to JPEG)
-        $format = function_exists('imagewebp') ? 'webp' : 'jpg';
-        $mimeType = $format === 'webp' ? 'image/webp' : 'image/jpeg';
+        Log::info('[MediaUpload] Dimensions checked/scaled', [
+            'from' => "{$originalWidth}x{$originalHeight}",
+            'to'   => "{$image->width()}x{$image->height()}",
+        ]);
 
-        // 2. Start at high quality (85%) and step down gradually only if over 1MB
+        // 2. Encode to WebP starting at high quality (85%)
         $quality = 85;
         $minQuality = 55;
         $encoded = null;
 
         do {
-            $encoded = (string) $image->encode($format, $quality);
+            $encoded = (string) $image->toWebp($quality);
+            $currentBytes = strlen($encoded);
 
-            // Exit immediately when <= 1MB or reached minimum quality threshold
-            if (strlen($encoded) <= self::MAX_TARGET_BYTES || $quality <= $minQuality) {
+            Log::info('[MediaUpload] WebP encoding attempt', [
+                'quality'    => $quality,
+                'size_bytes' => $currentBytes,
+                'size_kb'    => round($currentBytes / 1024, 2) . ' KB',
+                'target_1mb' => self::MAX_TARGET_BYTES,
+                'under_1mb'  => $currentBytes <= self::MAX_TARGET_BYTES,
+            ]);
+
+            // Stop immediately if <= 1MB or reached quality floor
+            if ($currentBytes <= self::MAX_TARGET_BYTES || $quality <= $minQuality) {
                 break;
             }
 
             $quality -= 5;
         } while ($quality >= $minQuality);
 
-        // 3. Fallback: If still above 1MB (e.g. exceptionally complex images), reduce dimensions
+        // 3. Fallback: If still above 1MB (rare complex images), downscale dimensions
         while (strlen($encoded) > self::MAX_TARGET_BYTES && $image->width() > 1200) {
+            Log::warning('[MediaUpload] Still above 1MB at minQuality, resizing dimensions down further...');
+
             $newWidth = (int) ($image->width() * 0.85);
-            $image->resize($newWidth, null, function ($constraint) {
-                $constraint->aspectRatio();
-            });
-            $encoded = (string) $image->encode($format, 75);
+            $newHeight = (int) ($image->height() * 0.85);
+            $image->resize($newWidth, $newHeight);
+            $encoded = (string) $image->toWebp(75);
+
+            Log::info('[MediaUpload] Post-dimension reduction size', [
+                'new_resolution' => "{$newWidth}x{$newHeight}",
+                'size_kb'        => round(strlen($encoded) / 1024, 2) . ' KB',
+            ]);
         }
 
         $baseName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-        $newFileName = $baseName . '.' . $format;
+        $newFileName = $baseName . '.webp';
 
-        return [$encoded, $newFileName, $mimeType, $format];
+        Log::info('[MediaUpload] Compression finalized', [
+            'final_filename' => $newFileName,
+            'final_size_kb'  => round(strlen($encoded) / 1024, 2) . ' KB',
+        ]);
+
+        return [$encoded, $newFileName, 'image/webp'];
     }
 }
