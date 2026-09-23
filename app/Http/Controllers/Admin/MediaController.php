@@ -8,12 +8,12 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Intervention\Image\Laravel\Facades\Image;
+use Illuminate\Support\Str;
+use Intervention\Image\ImageManager;
 
 class MediaController extends Controller
 {
-    private const MAX_IMAGE_BYTES = 1024 * 1024;  // compress down to 1MB
-    private const MAX_STARTING_WIDTH = 2000;       // pre-resize cap in pixels
+    private const MAX_TARGET_BYTES = 1048576; // 1MB
 
     /**
      * Store an uploaded file in R2 and register it in the database.
@@ -21,104 +21,113 @@ class MediaController extends Controller
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'file' => ['required', 'file', 'max:20480'], // 20MB raw upload limit
+            'file' => ['required', 'file', 'max:20480'], // Allow uploads up to 20MB prior to compression
         ]);
 
+        /** @var UploadedFile $file */
         $file = $request->file('file');
+        $mimeType = $file->getClientMimeType();
 
-        [$contents, $extension] = $this->prepareFileContents($file);
+        // Check if the uploaded file is an image
+        if ($this->isCompressibleImage($mimeType)) {
+            [$fileContent, $fileName, $mimeType, $extension] = $this->compressImageToTarget($file);
+            $path = 'v2/media/' . Str::uuid() . '.' . $extension;
+            $fileSize = strlen($fileContent);
 
-        $filename = uniqid() . '.' . $extension;
-        $path = 'v2/media/' . $filename;
+            // Store compressed image in R2
+            Storage::disk('r2')->put($path, $fileContent);
+        } else {
+            // PDF or regular documents: store directly as-is
+            $path = $file->store('v2/media', 'r2');
+            $fileName = $file->getClientOriginalName();
+            $fileSize = $file->getSize();
+        }
 
-        Storage::disk('r2')->put($path, $contents);
         $url = Storage::disk('r2')->url($path);
 
+        // Register the file in the media database table
         $media = Media::create([
             'file_path' => $path,
-            'url' => $url,
-            'file_name' => $file->getClientOriginalName(),
-            'mime_type' => $file->getMimeType(),
-            'size' => strlen($contents),
+            'url'       => $url,
+            'file_name' => $fileName,
+            'mime_type' => $mimeType,
+            'size'      => $fileSize,
         ]);
 
+        // Return the ID expected by FileUploader.vue
         return response()->json([
-            'id' => $media->id,
+            'id'  => $media->id,
             'url' => $media->url,
         ]);
     }
 
     /**
-     * Compress the file if it's an image over the size limit.
-     * Returns [binary contents, file extension to store with].
+     * Determine if the file mime type is a compressible image.
      */
-    private function prepareFileContents(UploadedFile $file): array
+    private function isCompressibleImage(?string $mimeType): bool
     {
-        $mime = $file->getMimeType();
-        $isCompressible = in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true);
+        return in_array($mimeType, [
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+            'image/bmp',
+        ]);
+    }
 
-        if (!$isCompressible || $file->getSize() <= self::MAX_IMAGE_BYTES) {
-            return [file_get_contents($file->getRealPath()), $file->getClientOriginalExtension()];
+    /**
+     * Compress and constrain an image to stay <= 1MB without perceptual quality loss.
+     * Compatible with Intervention Image v2.
+     *
+     * @return array{0: string, 1: string, 2: string, 3: string}
+     */
+    private function compressImageToTarget(UploadedFile $file): array
+    {
+        $manager = new ImageManager(['driver' => 'gd']);
+        $image = $manager->make($file->getRealPath());
+
+        // Auto-orient based on camera EXIF data (prevents phone photos rotating sideways)
+        if (method_exists($image, 'orientate')) {
+            $image->orientate();
         }
 
-        $image = Image::read($file->getRealPath());
+        // 1. Cap dimensions at max 2560px preserving aspect ratio (never upscales smaller images)
+        $image->resize(2560, 2560, function ($constraint) {
+            $constraint->aspectRatio();
+            $constraint->upsize();
+        });
 
-        // Pre-resize: for large uploads (phone/DSLR photos), most of the
-        // size comes from raw pixel count, not encoding quality. Cap the
-        // starting width before quality-stepping so we're not wasting
-        // passes trying to quality-compress a 6000px-wide image.
-        if ($image->width() > self::MAX_STARTING_WIDTH) {
-            $image = $image->scaleDown(width: self::MAX_STARTING_WIDTH);
-        }
+        // Determine target format (WebP if PHP GD supports it, otherwise fallback to JPEG)
+        $format = function_exists('imagewebp') ? 'webp' : 'jpg';
+        $mimeType = $format === 'webp' ? 'image/webp' : 'image/jpeg';
 
-        $extension = $mime === 'image/png' && !$this->hasTransparency($image)
-            ? 'jpg'
-            : $this->extensionFor($mime);
+        // 2. Start at high quality (85%) and step down gradually only if over 1MB
+        $quality = 85;
+        $minQuality = 55;
+        $encoded = null;
 
-        $binary = null;
+        do {
+            $encoded = (string) $image->encode($format, $quality);
 
-        // Step quality down until under the target size, but don't go
-        // below 60 — beyond that "smaller" starts meaning "visibly worse".
-        for ($quality = 90; $quality >= 60; $quality -= 5) {
-            $encoded = $extension === 'jpg'
-                ? $image->toJpeg($quality)
-                : ($extension === 'webp' ? $image->toWebp($quality) : $image->toPng());
-
-            $binary = (string) $encoded;
-
-            if (strlen($binary) <= self::MAX_IMAGE_BYTES || $extension === 'png') {
-                return [$binary, $extension];
+            // Exit immediately when <= 1MB or reached minimum quality threshold
+            if (strlen($encoded) <= self::MAX_TARGET_BYTES || $quality <= $minQuality) {
+                break;
             }
+
+            $quality -= 5;
+        } while ($quality >= $minQuality);
+
+        // 3. Fallback: If still above 1MB (e.g. exceptionally complex images), reduce dimensions
+        while (strlen($encoded) > self::MAX_TARGET_BYTES && $image->width() > 1200) {
+            $newWidth = (int) ($image->width() * 0.85);
+            $image->resize($newWidth, null, function ($constraint) {
+                $constraint->aspectRatio();
+            });
+            $encoded = (string) $image->encode($format, 75);
         }
 
-        // Still too big at quality 60: keep shrinking dimensions further,
-        // re-encoding at quality 75 each step, until under the target.
-        $width = $image->width();
-        while (strlen($binary) > self::MAX_IMAGE_BYTES && $width > 640) {
-            $width = (int) ($width * 0.85);
-            $image = $image->scaleDown(width: $width);
-            $binary = $extension === 'jpg' ? (string) $image->toJpeg(75) : (string) $image->toWebp(75);
-        }
+        $baseName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $newFileName = $baseName . '.' . $format;
 
-        return [$binary, $extension];
-    }
-
-    private function extensionFor(string $mime): string
-    {
-        return match ($mime) {
-            'image/png' => 'png',
-            'image/webp' => 'webp',
-            default => 'jpg',
-        };
-    }
-
-    private function hasTransparency($image): bool
-    {
-        try {
-            $core = $image->core()->native();
-            return imageistruecolor($core) && imagecolorat($core, 0, 0) >> 24 !== 0;
-        } catch (\Throwable) {
-            return true; // be conservative — keep PNG if unsure
-        }
+        return [$encoded, $newFileName, $mimeType, $format];
     }
 }
