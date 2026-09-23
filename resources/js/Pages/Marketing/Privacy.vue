@@ -5,7 +5,7 @@ import { ArrowRight, ShieldCheck } from "lucide-vue-next"
 import Layout from "@/Components/Public/Layout.vue"
 import Reveal from "@/Components/Public/shared/Reveal.vue"
 
-const HERO = "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=1800&q=80"
+const HERO = "/assets/public/images/Privacy_policy_hero.jpeg"
 
 const sections = [
     "Information we collect",

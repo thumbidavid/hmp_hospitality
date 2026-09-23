@@ -12,8 +12,8 @@ import StoriesSection from '@/Components/Public/home/StoriesSection.vue'
 import AgencyCrossPromo from '@/Components/Public/home/AgencyCrossPromo.vue'
 import FinalRfp from '@/Components/Public/home/FinalRfp.vue'
 
-const PANEL_MEETINGS = "https://images.unsplash.com/photo-1566073771259-1a873a6a8bed?auto=format&fit=crop&w=1600&q=80"
-const PANEL_RESIDENCES = "https://images.unsplash.com/photo-1564501049412-61c2a3083791?auto=format&fit=crop&w=1600&q=80"
+const PANEL_MEETINGS = "/assets/public/images/panel_meetings.jpeg"
+const PANEL_RESIDENCES = "/assets/public/images/panel_residences.jpeg"
 
 // Set persistent layout for Inertia
 defineOptions({

@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from "vue"
 import { Link, usePage, router } from "@inertiajs/vue3"
-import { Menu, X, Search, ArrowRight } from "lucide-vue-next"
+import { Menu, X, ArrowRight } from "lucide-vue-next"
 import { useShortlistStore } from "@/Stores/shortlistStore"
 
 const links = [
@@ -51,6 +51,16 @@ onMounted(() => {
 
 onUnmounted(() => {
     window.removeEventListener("scroll", onScroll)
+    if (typeof document !== "undefined") {
+        document.body.style.overflow = ""
+    }
+})
+
+// Prevent background page scrolling when the mobile drawer is open
+watch(open, (isOpen) => {
+    if (typeof document !== "undefined") {
+        document.body.style.overflow = isOpen ? "hidden" : ""
+    }
 })
 
 // Close the mobile menu automatically on route change
@@ -101,8 +111,6 @@ const navigateTo = (path) => {
 
             <!-- Desktop Actions -->
             <div class="hidden lg:flex items-center gap-3">
-
-
                 <Link v-if="count > 0" href="/rfp" :class="[
                     'text-sm flex items-center gap-1.5',
                     transparent ? 'text-white' : 'text-ink'
@@ -129,47 +137,55 @@ const navigateTo = (path) => {
             </button>
         </div>
 
-        <!-- Mobile Drawer -->
-        <div v-if="open" class="lg:hidden fixed inset-0 z-50 bg-ink text-white">
-            <div class="flex h-20 items-center justify-between container-wide">
-                <!-- Mobile White Image Logo -->
-                <Link href="/" class="flex items-center group">
-                    <img src="/logo_white.png" alt="HMP Hospitality" class="h-10 w-auto object-contain" />
-                </Link>
+        <!-- Teleported Mobile Drawer to guarantee visibility and prevent z-index clipping -->
+        <Teleport to="body">
+            <div v-if="open"
+                class="lg:hidden fixed inset-0 z-[9999] bg-[#082018] text-white flex flex-col justify-between overflow-y-auto">
+                <div>
+                    <!-- Drawer Header -->
+                    <div class="flex h-20 items-center justify-between container-wide">
+                        <Link href="/" @click="open = false" class="flex items-center group">
+                            <img src="/logo_white.png" alt="HMP Hospitality" class="h-10 w-auto object-contain" />
+                        </Link>
 
-                <!-- Close Button -->
-                <button @click="open = false"
-                    class="grid place-items-center h-10 w-10 rounded-full border border-white/25 text-white"
-                    aria-label="Close">
-                    <X class="h-5 w-5" />
-                </button>
-            </div>
+                        <!-- Close Button -->
+                        <button @click="open = false"
+                            class="grid place-items-center h-10 w-10 rounded-full border border-white/25 text-white hover:bg-white/10 transition-colors"
+                            aria-label="Close">
+                            <X class="h-5 w-5" />
+                        </button>
+                    </div>
 
-            <div class="container-wide pb-10">
-                <span class="block px-1 text-[11px] font-medium uppercase tracking-[0.28em] text-primary">Menu</span>
-                <nav class="mt-3 flex flex-col border-t border-white/10">
-                    <Link v-for="l in links" :key="l.path" :href="l.path" :class="[
-                        'flex items-center justify-between font-heading text-3xl py-4 border-b border-white/10 transition-colors',
-                        isActive(l.path) ? 'text-primary' : 'text-white hover:text-white/80'
-                    ]">
-                        {{ l.label }}
-                        <span v-if="isActive(l.path)" class="h-2 w-2 rounded-full bg-primary" />
-                    </Link>
-                </nav>
+                    <!-- Drawer Nav Items -->
+                    <div class="container-wide pb-6">
+                        <span
+                            class="block px-1 text-[11px] font-medium uppercase tracking-[0.28em] text-primary">Menu</span>
+                        <nav class="mt-3 flex flex-col border-t border-white/10">
+                            <Link v-for="l in links" :key="l.path" :href="l.path" @click="open = false" :class="[
+                                'flex items-center justify-between font-heading text-3xl py-4 border-b border-white/10 transition-colors',
+                                isActive(l.path) ? 'text-primary' : 'text-white hover:text-white/80'
+                            ]">
+                                {{ l.label }}
+                                <span v-if="isActive(l.path)" class="h-2 w-2 rounded-full bg-primary" />
+                            </Link>
+                        </nav>
 
-                <Link href="/rfp" class="btn-primary mt-8 w-full justify-center">
-                    Submit RFP
-                    <ArrowRight class="h-4 w-4" />
-                </Link>
-                <Link href="/partners" class="btn-light mt-3 w-full justify-center">
-                    Become a Partner
-                </Link>
+                        <Link href="/rfp" @click="open = false" class="btn-primary mt-8 w-full justify-center">
+                            Submit RFP
+                            <ArrowRight class="h-4 w-4" />
+                        </Link>
+                        <Link href="/partners" @click="open = false" class="btn-light mt-3 w-full justify-center">
+                            Become a Partner
+                        </Link>
+                    </div>
+                </div>
 
-                <div class="mt-10 space-y-1 text-sm text-white/55">
+                <!-- Drawer Footer -->
+                <div class="container-wide pb-10 pt-4 border-t border-white/10 space-y-1 text-sm text-white/60">
                     <p>hello@hmphospitality.co · +254 703 720 000</p>
                     <p class="leading-relaxed">6th Floor, MJ1 Business Park, Westlands Road, Nairobi</p>
                 </div>
             </div>
-        </div>
+        </Teleport>
     </header>
 </template>

@@ -5,7 +5,7 @@ import { ArrowRight, Cookie } from "lucide-vue-next"
 import Layout from "@/Components/Public/Layout.vue"
 import Reveal from "@/Components/Public/shared/Reveal.vue"
 
-const HERO = "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?auto=format&fit=crop&w=1800&q=80"
+const HERO = "/assets/public/images/Cookie_policy_hero.jpeg"
 
 const sections = ["What cookies are", "Cookies we use", "Managing cookies", "Third parties", "Changes", "Contact"]
 const header = { name: "Cookie", purpose: "Purpose", type: "Type" }

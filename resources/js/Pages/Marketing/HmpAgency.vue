@@ -6,7 +6,7 @@ import Layout from "@/Components/Public/Layout.vue"
 import Reveal from "@/Components/Public/shared/Reveal.vue"
 import SectionHead from "@/Components/Public/shared/SectionHead.vue"
 
-const AGENCY_HERO = "https://images.unsplash.com/photo-1571003123894-1f0594d4b0c5?auto=format&fit=crop&w=2000&q=80"
+const AGENCY_HERO = "/assets/public/images/HMP_Agency_hero.jpeg"
 const stepLabels = ["Contact", "Programme", "Services", "Budget & needs", "Review"]
 
 const orgTypes = ["Corporation", "Association", "NGO", "Government", "Travel Management Company", "Travel Agency", "Tour Operator", "Meeting & Events Agency", "Professional Conference Organiser", "Incentive Agency", "Luxury Travel Advisor", "Consortia", "Other"]
@@ -138,8 +138,8 @@ defineOptions({
             <div class="container-wide relative pt-28 pb-12 text-white">
                 <span class="text-xs uppercase tracking-[0.28em] text-white/70">HMP Agency · Hotel and Meeting Planner
                     Ltd</span>
-                <h1 class="mt-2 font-heading text-4xl sm:text-5xl lg:text-6xl leading-tight text-balance">Beyond the
-                    Property. Complete Programme Support.</h1>
+                <h1 class="mt-2 font-heading text-4xl sm:text-5xl lg:text-6xl leading-tight text-balance">More Than
+                    Property Management</h1>
                 <p class="mt-4 max-w-2xl text-white/85 leading-relaxed">HMP Agency provides business travel, destination
                     management, meetings and events services for organisations planning programmes in Kenya and across
                     Africa.</p>

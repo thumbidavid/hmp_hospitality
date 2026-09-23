@@ -3,7 +3,7 @@ import { Link } from "@inertiajs/vue3"
 import { ArrowRight } from "lucide-vue-next"
 import Reveal from "../shared/Reveal.vue"
 
-const IMG = "https://images.unsplash.com/photo-1551882547-ff40ac63a5e1?auto=format&fit=crop&w=1600&q=80"
+const IMG = "/assets/public/images/Independent_Hospitality.jpeg"
 </script>
 
 <template>

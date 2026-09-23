@@ -22,7 +22,7 @@ const sortOptions = [
 ]
 
 const propertyTypes = ["Hotel", "Resort", "Safari Lodge/Camp", "Conference Venue", "Unique Venue", "Serviced Residence"]
-const PORTFOLIO_HERO = "https://images.unsplash.com/photo-1610642372684-6d5c0a1ab0a3?auto=format&fit=crop&w=2000&q=80"
+const PORTFOLIO_HERO = "/assets/public/images/Portfolio_hero.jpeg"
 
 const page = usePage()
 
@@ -102,8 +102,7 @@ defineOptions({
         <meta property="og:title" content="Explore Our Collection — HMP Hospitality" />
         <meta property="og:description"
             content="Discover represented hotels, unique venues, and serviced residences tailored for business travel, incentives, and corporate events." />
-        <meta property="og:image"
-            content="https://images.unsplash.com/photo-1610642372684-6d5c0a1ab0a3?auto=format&fit=crop&w=1200&q=80" />
+        <meta property="og:image" content="/assets/public/images/Portfolio_hero.jpeg" />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
     </Head>

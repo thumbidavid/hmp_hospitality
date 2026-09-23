@@ -7,7 +7,7 @@ import Reveal from "@/Components/Public/shared/Reveal.vue"
 import SectionHead from "@/Components/Public/shared/SectionHead.vue"
 import HmpAgencyCta from "@/Components/Public/HmpAgencyCta.vue"
 
-const PARTNERS_HERO = "https://images.unsplash.com/photo-1564501049412-61c2a3083791?auto=format&fit=crop&w=2000&q=80"
+const PARTNERS_HERO = "/assets/public/images/Partners_hero.jpeg"
 
 const page = usePage()
 
@@ -132,7 +132,7 @@ defineOptions({
                                     <ArrowUpRight class="h-3 w-3" />
                                 </a>
                                 <span v-else class="text-sm font-medium text-foreground leading-snug">{{ p.name
-                                    }}</span>
+                                }}</span>
                             </div>
                         </li>
                     </ul>

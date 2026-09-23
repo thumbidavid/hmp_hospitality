@@ -5,7 +5,7 @@ import Layout from "@/Components/Public/Layout.vue"
 import Reveal from "@/Components/Public/shared/Reveal.vue"
 import SectionHead from "@/Components/Public/shared/SectionHead.vue"
 
-const ABOUT_HERO = "https://images.unsplash.com/photo-1551882547-ff40ac63a5e1?auto=format&fit=crop&w=2000&q=80"
+const ABOUT_HERO = "/assets/public/images/About_hero.jpeg"
 
 const stats = [
     { k: "12+", v: "destinations represented" },

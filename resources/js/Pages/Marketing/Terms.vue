@@ -5,7 +5,7 @@ import { ArrowRight, FileText } from "lucide-vue-next"
 import Layout from "@/Components/Public/Layout.vue"
 import Reveal from "@/Components/Public/shared/Reveal.vue"
 
-const HERO = "https://images.unsplash.com/photo-1554224155-67235b462309?auto=format&fit=crop&w=1800&q=80"
+const HERO = "/assets/public/images/Terms_of_use_hero.jpeg"
 
 const sections = ["Acceptance", "Use of the site", "Intellectual property", "RFP & enquiries", "No guarantee", "Links", "Liability", "Indemnity", "Governing law", "Changes", "Contact"]
 

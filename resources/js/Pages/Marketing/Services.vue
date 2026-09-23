@@ -6,7 +6,7 @@ import Layout from "@/Components/Public/Layout.vue"
 import Reveal from "@/Components/Public/shared/Reveal.vue"
 import SectionHead from "@/Components/Public/shared/SectionHead.vue"
 
-const SERVICES_HERO = "https://images.unsplash.com/photo-1566073771259-1a873a6a8bed?auto=format&fit=crop&w=2000&q=80"
+const SERVICES_HERO = "/assets/public/images/Services_hero.jpeg"
 
 // Member-focused representation service stacks
 const serviceGroups = computed(() => [
@@ -122,8 +122,7 @@ defineOptions({
         <meta property="og:title" content="Our Services — HMP Hospitality" />
         <meta property="og:description"
             content="Outsourced reach, active buyer relations, and yield advisory connecting outstanding properties with high-yield global booking channels." />
-        <meta property="og:image"
-            content="https://images.unsplash.com/photo-1566073771259-1a873a6a8bed?auto=format&fit=crop&w=1200&q=80" />
+        <meta property="og:image" content="/assets/public/images/Services_hero.jpeg" />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
     </Head>

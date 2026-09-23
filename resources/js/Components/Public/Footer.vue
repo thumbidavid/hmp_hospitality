@@ -36,7 +36,11 @@ const cols = [
     },
 ]
 
-const socialIcons = [Linkedin, Instagram, Mail]
+const socialIcons = [
+    { icon: Linkedin, link: 'https://www.linkedin.com/company/hmphospitality/' },
+    { icon: Instagram, link: 'https://www.instagram.com/hmphospitality.co?stkn=MTNrbjAzbDlod3BkbA==' },
+    { icon: Mail, link: 'mailto:hello@hmphospitality.co' }
+]
 
 const page = usePage()
 
@@ -77,7 +81,8 @@ const handleSubscribe = () => {
                         serviced residences and destinations with qualified global buyers.
                     </p>
                     <div class="mt-6 flex items-center gap-3">
-                        <a v-for="(Icon, i) in socialIcons" :key="i" href="#"
+                        <a v-for="(Icon, i) in socialIcons" :key="i" :href="item.link" target="_blank"
+                            rel="noopener noreferrer"
                             class="grid place-items-center h-10 w-10 rounded-full border border-white/15 text-ink-fg/80 transition-colors hover:border-primary hover:text-primary">
                             <component :is="Icon" class="h-4 w-4" />
                         </a>
