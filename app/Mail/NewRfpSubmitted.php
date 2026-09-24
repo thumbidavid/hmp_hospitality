@@ -4,9 +4,9 @@ namespace App\Mail;
 
 use App\Models\RfpSubmission;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
@@ -34,8 +34,19 @@ class NewRfpSubmitted extends Mailable
         );
     }
 
+    /**
+     * Attach the uploaded brief directly to the email
+     */
     public function attachments(): array
     {
+        // If the RFP has an attachment URL (Cloudflare R2 or Storage)
+        if (!empty($this->rfp->attachment_url)) {
+            return [
+                Attachment::fromUrl($this->rfp->attachment_url)
+                    ->as('Client_Brief_' . $this->rfp->reference_number . '.pdf'),
+            ];
+        }
+
         return [];
     }
 }

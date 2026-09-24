@@ -59,7 +59,8 @@ class StoreRfpSubmissionRequest extends FormRequest
 
             'proposal_deadline' => ['nullable', 'date'],
             'decision_date' => ['nullable', 'date'],
-            'attachment_id' => ['nullable', 'integer', 'exists:media,id'], // Media record reference
+            'attachment' => ['nullable', 'file', 'mimes:pdf,doc,docx,xls,xlsx', 'max:15360'], // max 15MB
+            'attachment_id' => ['nullable', 'integer', 'exists:media,id'],
 
             // Step 4: Shortlist & Consent
             'privacy_policy_accepted' => ['required', 'boolean', 'accepted'],

@@ -1,7 +1,8 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from "vue"
 import { Head, usePage, router, Link } from "@inertiajs/vue3"
-import { ArrowRight, ArrowLeft, Check, X, Heart, Upload } from "lucide-vue-next"
+import { ArrowRight, ArrowLeft, Check, X, Heart, Upload, FileText } from "lucide-vue-next"
+import axios from "axios" // FIXED: Imported axios
 import Layout from "@/Components/Public/Layout.vue"
 import { useShortlistStore } from "@/Stores/shortlistStore"
 
@@ -9,7 +10,7 @@ const steps = ["Buyer details", "Requirement type", "Programme details", "Review
 const requirementTypes = ["Business Travel", "Group Accommodation", "Conference or Meeting", "Incentive Programme", "Association Event", "Government or NGO Programme", "Leisure Group", "Long-stay Accommodation", "Venue-only Event", "Destination Enquiry"]
 const currencies = ["USD", "KES", "ZAR", "EUR", "GBP", "NGN", "MAD"]
 const agencyServices = ["Air travel and business travel", "Airport coordination", "Ground transportation", "Destination management", "Meetings and event management", "Delegate registration and logistics", "Event production", "Tours and experiences", "VIP and protocol services", "No additional support required"]
-const RFP_HERO = "https://images.unsplash.com/photo-1542317638-a31dcf3aa345?auto=format&fit=crop&w=2000&q=80"
+const RFP_HERO = "/assets/public/images/Privacy_policy_hero.jpeg"
 
 const page = usePage()
 const shortlistStore = useShortlistStore()
@@ -18,6 +19,13 @@ const step = ref(0)
 const agency = ref([])
 const submitting = ref(false)
 const showSuccessModal = ref(false) // Controls modal visibility
+
+// Upload states
+const fileInput = ref(null)
+const uploadingFile = ref(false)
+const uploadedFile = ref(null) // Stores { name, size }
+const attachmentId = ref(null) // Stores the database ID from MediaController
+const isDragging = ref(false)  // FIXED: Declared isDragging state
 
 const f = reactive({
     plannerName: "", plannerTitle: "", plannerCompany: "", plannerEmail: "", plannerPhone: "", plannerCountry: "", buyerType: "", commMethod: "Email",
@@ -62,6 +70,56 @@ const toggleAgency = (s) => {
 
 const next = () => { step.value = Math.min(step.value + 1, 3) }
 const back = () => { step.value = Math.max(step.value - 1, 0) }
+
+const triggerFileInput = () => {
+    fileInput.value?.click()
+}
+
+// Upload file directly to MediaController
+const processFile = async (file) => {
+    if (!file) return
+
+    uploadingFile.value = true
+
+    const formData = new FormData()
+    formData.append("file", file)
+
+    try {
+        const response = await axios.post("/media/upload", formData, {
+            headers: { "Content-Type": "multipart/form-data" }
+        })
+
+        attachmentId.value = response.data.id
+        uploadedFile.value = {
+            name: file.name,
+            size: (file.size / (1024 * 1024)).toFixed(2) + " MB"
+        }
+    } catch (error) {
+        console.error("File upload failed:", error)
+        alert("Failed to upload file. Please try again.")
+    } finally {
+        uploadingFile.value = false
+    }
+}
+
+// FIXED: Defined handleFileChange for the hidden input
+const handleFileChange = (event) => {
+    const file = event.target.files?.[0]
+    processFile(file)
+}
+
+// FIXED: Defined handleDrop for the dropzone
+const handleDrop = (event) => {
+    isDragging.value = false
+    const file = event.dataTransfer?.files?.[0]
+    processFile(file)
+}
+
+const removeFile = () => {
+    uploadedFile.value = null
+    attachmentId.value = null
+    if (fileInput.value) fileInput.value.value = ""
+}
 
 const isValid = computed(() => {
     if (step.value === 0) return f.plannerName && f.plannerEmail && f.buyerType
@@ -137,6 +195,8 @@ const submit = () => {
         proposal_deadline: f.proposalDeadline || null,
         decision_date: f.decisionDate || null,
 
+        // FIXED: Sends attachment_id to match StoreRfpSubmissionRequest & RfpController
+        attachment_id: attachmentId.value,
         properties: propertyIds,
         agency_services: mappedAgencyServices,
         privacy_policy_accepted: f.acceptPrivacy
@@ -160,6 +220,9 @@ const submit = () => {
             })
             agency.value = []
             step.value = 0
+
+            // Reset upload state
+            removeFile()
 
             // 2. Clear local storage shortlist
             shortlistStore.clear()
@@ -195,7 +258,7 @@ defineOptions({
         <meta property="og:image"
             content="https://images.unsplash.com/photo-1542317638-a31dcf3aa345?auto=format&fit=crop&w=1200&q=80" />
         <meta property="og:type" content="website" />
-        <meta name="robots" content="noindex, follow" /> <!-- Protects your submission funnel from index clutter -->
+        <meta name="robots" content="noindex, follow" />
     </Head>
 
     <div>
@@ -408,27 +471,9 @@ defineOptions({
                     </div>
                     <div>
                         <label
-                            class="block text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5">Meeting
-                            room requirements</label>
-                        <input type="text" v-model="f.meetingSpaceReq" class="input-field" />
-                    </div>
-                    <div>
-                        <label
                             class="block text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5">Venue
                             capacity</label>
                         <input type="number" v-model="f.venueCapacity" class="input-field" />
-                    </div>
-                    <div>
-                        <label
-                            class="block text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5">Food
-                            & beverage requirements</label>
-                        <input type="text" v-model="f.fbRequirements" class="input-field" />
-                    </div>
-                    <div>
-                        <label
-                            class="block text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5">Transfer
-                            / airport requirements</label>
-                        <input type="text" v-model="f.transferRequirements" class="input-field" />
                     </div>
                     <div>
                         <label
@@ -443,23 +488,62 @@ defineOptions({
                             <option v-for="c in currencies" :key="c" :value="c">{{ c }}</option>
                         </select>
                     </div>
-                    <div>
+                    <div class="sm:col-span-2">
                         <label
-                            class="block text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5">Accessibility
-                            requirements</label>
-                        <input type="text" v-model="f.accessibility" class="input-field" />
+                            class="block text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5">
+                            Meeting room requirements
+                        </label>
+                        <textarea v-model="f.meetingSpaceReq" rows="3"
+                            class="input-field resize-y min-h-[80px] py-2.5 leading-relaxed"
+                            placeholder="E.g. theater layout, boardroom setup, breakout rooms, AV/projector needs..."></textarea>
                     </div>
-                    <div>
+
+                    <div class="sm:col-span-2">
                         <label
-                            class="block text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5">Sustainability
-                            requirements</label>
-                        <input type="text" v-model="f.sustainability" class="input-field" />
+                            class="block text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5">
+                            Food & beverage requirements
+                        </label>
+                        <textarea v-model="f.fbRequirements" rows="3"
+                            class="input-field resize-y min-h-[80px] py-2.5 leading-relaxed"
+                            placeholder="E.g. full board, bush dinners, halal, vegetarian, gluten-free, cocktail receptions..."></textarea>
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label
+                            class="block text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5">
+                            Transfer / airport requirements
+                        </label>
+                        <textarea v-model="f.transferRequirements" rows="3"
+                            class="input-field resize-y min-h-[80px] py-2.5 leading-relaxed"
+                            placeholder="E.g. VIP airport meet & greet, 4x4 safari land cruisers, executive coach, private charter flights..."></textarea>
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label
+                            class="block text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5">
+                            Accessibility requirements
+                        </label>
+                        <textarea v-model="f.accessibility" rows="3"
+                            class="input-field resize-y min-h-[80px] py-2.5 leading-relaxed"
+                            placeholder="E.g. wheelchair access, step-free navigation, accessible rooms..."></textarea>
                     </div>
                     <div class="sm:col-span-2">
                         <label
-                            class="block text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5">Additional
-                            requirements</label>
-                        <input type="text" v-model="f.additionalServices" class="input-field" />
+                            class="block text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5">
+                            Sustainability requirements
+                        </label>
+                        <textarea v-model="f.sustainability" rows="3"
+                            class="input-field resize-y min-h-[80px] py-2.5 leading-relaxed"
+                            placeholder="E.g. eco-certifications, carbon offsetting, community impact initiatives..."></textarea>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label
+                            class="block text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5">
+                            Additional requirements
+                        </label>
+                        <textarea v-model="f.additionalServices" rows="4"
+                            class="input-field resize-y min-h-[100px] py-2.5 leading-relaxed"
+                            placeholder="Enter any additional requirements, special requests, or brief notes..."></textarea>
                     </div>
                     <div>
                         <label
@@ -473,17 +557,52 @@ defineOptions({
                             date</label>
                         <input type="date" v-model="f.decisionDate" class="input-field" />
                     </div>
-                    <!-- File upload placeholder -->
+
+                    <!-- File Upload Dropzone -->
                     <div class="sm:col-span-2">
                         <label
-                            class="block text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5">Upload
-                            brief or supporting document</label>
-                        <div
-                            class="flex items-center justify-center rounded-xl border border-dashed border-border bg-background px-4 py-8 text-center cursor-pointer hover:bg-muted/10 transition-colors">
-                            <div>
-                                <Upload class="h-5 w-5 text-primary mx-auto" />
-                                <p class="mt-2 text-sm text-muted-foreground">Drop a PDF or click to upload</p>
+                            class="block text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5">
+                            Upload brief or supporting document
+                        </label>
+
+                        <!-- Hidden native file input -->
+                        <input ref="fileInput" type="file" class="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx"
+                            @change="handleFileChange" />
+
+                        <!-- Empty State / Dropzone -->
+                        <div v-if="!uploadedFile" @click="triggerFileInput" @dragover.prevent="isDragging = true"
+                            @dragleave.prevent="isDragging = false" @drop.prevent="handleDrop" :class="[
+                                'flex items-center justify-center rounded-xl border border-dashed px-4 py-8 text-center cursor-pointer transition-all',
+                                isDragging ? 'border-primary bg-primary/5' : 'border-border bg-background hover:bg-muted/10'
+                            ]">
+                            <div v-if="!uploadingFile">
+                                <Upload class="h-6 w-6 text-primary mx-auto mb-2" />
+                                <p class="text-sm font-medium text-foreground">Click to upload or drag & drop</p>
+                                <p class="mt-1 text-xs text-muted-foreground">PDF, DOC, DOCX up to 15MB</p>
                             </div>
+                            <div v-else class="text-sm text-primary font-medium flex items-center gap-2">
+                                <span class="animate-spin text-lg">⏳</span> Uploading document...
+                            </div>
+                        </div>
+
+                        <!-- Selected File Preview Card -->
+                        <div v-else
+                            class="flex items-center justify-between p-3.5 rounded-xl border border-border bg-card shadow-sm">
+                            <div class="flex items-center gap-3 truncate">
+                                <span
+                                    class="grid place-items-center h-10 w-10 rounded-lg bg-primary/10 text-primary flex-shrink-0">
+                                    <FileText class="h-5 w-5" />
+                                </span>
+                                <div class="truncate">
+                                    <p class="text-sm font-medium text-foreground truncate">{{ uploadedFile.name }}</p>
+                                    <p class="text-xs text-muted-foreground">{{ uploadedFile.size }}</p>
+                                </div>
+                            </div>
+                            <button type="button" @click="removeFile"
+                                class="grid place-items-center h-8 w-8 rounded-full hover:bg-muted text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+                                title="Remove file">
+                                <X class="h-4 w-4" />
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -637,6 +756,12 @@ defineOptions({
                                     <dt class="text-muted-foreground">Additional req.</dt>
                                     <dd class="text-right font-medium">{{ f.additionalServices }}</dd>
                                 </div>
+                                <!-- Attached document preview in review -->
+                                <div v-if="uploadedFile"
+                                    class="flex justify-between gap-6 border-b border-border pb-1.5">
+                                    <dt class="text-muted-foreground">Attached brief</dt>
+                                    <dd class="text-right font-medium text-primary">{{ uploadedFile.name }}</dd>
+                                </div>
                             </dl>
                         </div>
 
@@ -767,7 +892,7 @@ defineOptions({
                 </button>
 
                 <button v-else @click="submit"
-                    :disabled="!f.acceptPrivacy || (wantsAgency && !f.agencyConsent) || submitting"
+                    :disabled="!f.acceptPrivacy || (wantsAgency && !f.agencyConsent) || submitting || uploadingFile"
                     class="btn-primary disabled:opacity-50 cursor-pointer">
                     {{ submitting ? 'Submitting...' : 'Submit RFP' }}
                     <ArrowRight class="h-4 w-4" />

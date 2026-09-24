@@ -82,6 +82,9 @@ Route::group([], function () {
     Route::get('/terms-of-use', [PolicyController::class, 'terms'])->name('terms');
 });
 
+// Public media upload for RFP attachments (No auth middleware)
+Route::post('/media/upload', [MediaController::class, 'store'])->name('public.media.upload');
+
 Route::fallback(function () {
     return Inertia::render('PageNotFound');
 });
