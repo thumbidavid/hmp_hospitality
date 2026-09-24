@@ -11,7 +11,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class NewRfpSubmitted extends Mailable implements ShouldQueue
+class RfpClientConfirmation extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
@@ -20,17 +20,15 @@ class NewRfpSubmitted extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "New RFP Submission: {$this->rfp->reference_number} - {$this->rfp->full_name}",
-            replyTo: [
-                new Address($this->rfp->email, $this->rfp->full_name),
-            ],
+            from: new Address(config('mail.from.address', 'hello@hmphospitality.co'), 'HMP Hospitality'),
+            subject: "We have received your RFP ({$this->rfp->reference_number}) - HMP Hospitality",
         );
     }
 
     public function content(): Content
     {
         return new Content(
-            view: 'emails.rfp.admin-notification',
+            view: 'emails.rfp.client-confirmation',
         );
     }
 

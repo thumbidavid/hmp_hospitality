@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from "vue"
-import { Link, usePage } from "@inertiajs/vue3" // Import usePage
+import { Link, usePage } from "@inertiajs/vue3"
 import { ArrowUpRight, Heart, MapPin } from "lucide-vue-next"
 import { useShortlistStore } from "@/Stores/shortlistStore"
 
@@ -13,6 +13,13 @@ const props = defineProps({
 
 const page = usePage()
 const shortlistStore = useShortlistStore()
+
+// Dynamic detail page URL
+const itemUrl = computed(() =>
+    props.it.type === 'destination'
+        ? `/destinations/${props.it.id}`
+        : `/portfolio/${props.it.id}`
+)
 
 // If this is a destination card, it is considered active only if ALL its nested properties are shortlisted
 const active = computed(() => {
@@ -62,17 +69,21 @@ const handleToggleShortlist = () => {
     <article class="property-card group flex flex-col h-full">
         <!-- Thumbnail Block -->
         <div class="relative block aspect-[4/3] overflow-hidden rounded-t-2xl">
-            <img :src="it.image" :alt="it.name" loading="lazy" class="h-full w-full object-cover img-rise" />
-            <div class="absolute inset-0 bg-gradient-to-t from-black/55 via-black/0 to-black/10" />
+            <!-- Clickable Image Link -->
+            <Link :href="itemUrl" class="block h-full w-full cursor-pointer">
+                <img :src="it.image" :alt="it.name" loading="lazy" class="h-full w-full object-cover img-rise" />
+                <div
+                    class="absolute inset-0 bg-gradient-to-t from-black/55 via-black/0 to-black/10 pointer-events-none" />
+            </Link>
 
             <span
-                class="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-foreground">
+                class="pointer-events-none absolute left-4 top-4 z-10 rounded-full bg-white/90 px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-foreground">
                 {{ it.category }}
             </span>
 
             <!-- Dynamic Heart Button (Applies group toggling if Destination) -->
             <button @click.prevent="handleToggleShortlist" :class="[
-                'absolute right-4 top-4 grid place-items-center h-9 w-9 rounded-full backdrop-blur transition-all cursor-pointer shadow-sm',
+                'absolute right-4 top-4 z-10 grid place-items-center h-9 w-9 rounded-full backdrop-blur transition-all cursor-pointer shadow-sm',
                 active ? 'bg-primary text-primary-foreground' : 'bg-white/85 text-foreground hover:bg-white'
             ]" :aria-label="active ? 'Remove from shortlist' : 'Add to shortlist'">
                 <Heart :class="['h-4 w-4', active ? 'fill-current' : '']" />
@@ -88,8 +99,7 @@ const handleToggleShortlist = () => {
             </div>
 
             <h3 class="mt-2 font-heading text-xl text-foreground">
-                <Link :href="it.type === 'destination' ? `/destinations/${it.id}` : `/portfolio/${it.id}`"
-                    class="hover:text-primary transition-colors leading-tight">
+                <Link :href="itemUrl" class="hover:text-primary transition-colors leading-tight cursor-pointer">
                     {{ it.name }}
                 </Link>
             </h3>
@@ -110,8 +120,7 @@ const handleToggleShortlist = () => {
             </div>
 
             <div class="mt-5 flex items-center gap-3 mt-auto">
-                <Link :href="it.type === 'destination' ? `/destinations/${it.id}` : `/portfolio/${it.id}`"
-                    class="editorial-link flex-1">
+                <Link :href="itemUrl" class="editorial-link flex-1 cursor-pointer">
                     {{ it.type === 'destination' ? 'Explore Destination' : 'View Property' }}
                     <ArrowUpRight class="h-4 w-4 arr" />
                 </Link>

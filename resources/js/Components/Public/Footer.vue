@@ -81,10 +81,10 @@ const handleSubscribe = () => {
                         serviced residences and destinations with qualified global buyers.
                     </p>
                     <div class="mt-6 flex items-center gap-3">
-                        <a v-for="(Icon, i) in socialIcons" :key="i" :href="item.link" target="_blank"
+                        <a v-for="(item, i) in socialIcons" :key="i" :href="item.link" target="_blank"
                             rel="noopener noreferrer"
                             class="grid place-items-center h-10 w-10 rounded-full border border-white/15 text-ink-fg/80 transition-colors hover:border-primary hover:text-primary">
-                            <component :is="Icon" class="h-4 w-4" />
+                            <component :is="item.icon" class="h-4 w-4" />
                         </a>
                     </div>
                 </div>

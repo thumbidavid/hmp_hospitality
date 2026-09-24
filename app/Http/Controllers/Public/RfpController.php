@@ -10,9 +10,10 @@ use App\Models\BuyerType;
 use App\Models\AgencySupportService;
 use App\Models\Property;
 use App\Models\Media;
-use App\Mail\NewRfpSubmitted; // Import your Mail class
+use App\Mail\NewRfpSubmitted;
+use App\Mail\RfpClientConfirmation;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail; // Import Mail Facade
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 
 class RfpController extends Controller
@@ -22,19 +23,17 @@ class RfpController extends Controller
      */
     public function index()
     {
-        // 1. Gather lookups to hydrate dropdowns and shortlist matching
         $countries = Country::orderBy('name', 'asc')->get(['id', 'name'])->toArray();
         $buyerTypes = BuyerType::orderBy('name', 'asc')->get(['id', 'name'])->toArray();
         $agencyServices = AgencySupportService::orderBy('sort_order', 'asc')->get(['id', 'name'])->toArray();
 
-        // 2. Load properties so we can cross-reference the client's shortlisted slugs
         $properties = Property::where('is_active', true)
             ->with(['portfolioCategory', 'country'])
             ->get()
             ->map(function ($p) {
                 return [
-                    'id' => $p->id, // Database ID needed for relation syncing
-                    'slug' => $p->slug, // Slug needed to match local Pinia state
+                    'id' => $p->id,
+                    'slug' => $p->slug,
                     'name' => $p->name,
                     'city' => $p->city ?? '',
                     'country' => $p->country->name ?? '',
@@ -52,19 +51,13 @@ class RfpController extends Controller
     }
 
     /**
-     * Public store endpoint wrapped to trigger the admin email notification.
+     * Public store endpoint wrapped to trigger the admin and client emails.
      */
     public function store(StoreRfpSubmissionRequest $request)
     {
         $validated = $request->validated();
         $attachmentUrl = null;
 
-        // 1. Generate unique serial reference number
-        $latest = RfpSubmission::latest('id')->first();
-        $nextId = $latest ? $latest->id + 1 : 1;
-        $referenceNumber = 'RFP-' . date('Y') . '-' . str_pad($nextId, 6, '0', STR_PAD_LEFT);
-
-        // 2. Resolve R2 attachment file URL
         if ($request->filled('attachment_id')) {
             $media = Media::find($request->input('attachment_id'));
             if ($media) {
@@ -74,34 +67,46 @@ class RfpController extends Controller
 
         DB::beginTransaction();
         try {
-            // 3. Create the core RFP submission
+            $latest = RfpSubmission::latest('id')->first();
+            $nextId = $latest ? $latest->id + 1 : 1;
+            $referenceNumber = 'RFP-' . date('Y') . '-' . str_pad($nextId, 6, '0', STR_PAD_LEFT);
+
             $rfp = RfpSubmission::create(array_merge($validated, [
                 'reference_number' => $referenceNumber,
                 'attachment_url' => $attachmentUrl,
             ]));
 
-            // 4. Sync shortlisted properties pivot
-            $rfp->properties()->sync($validated['properties']);
+            if (!empty($validated['properties'])) {
+                $rfp->properties()->sync($validated['properties']);
+            }
 
-            // 5. Sync requested agency support services pivot
             if (!empty($validated['agency_services'])) {
                 $rfp->agencyServices()->sync($validated['agency_services']);
             }
 
             DB::commit();
-
-            // 6. Send the Email Notification to hello@hmphospitality.co
-            Mail::to('hello@hmphospitality.co')->send(new NewRfpSubmitted($rfp));
-
-            return redirect()->back()->with('success', [
-                'ref' => $referenceNumber,
-                'ok' => true
-            ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
+
             return redirect()->back()->withErrors([
-                'submission' => 'An error occurred while compiling your RFP. Please try again.'
+                'submission' => 'An error occurred while compiling your RFP: ' . $e->getMessage()
             ]);
         }
+
+        // Eager load full relations for the email templates
+        $rfp->load(['properties.country', 'agencyServices', 'buyerType', 'buyerCountry']);
+
+        // Dispatch Mail Notifications
+        try {
+            Mail::to('hello@hmphospitality.co')->send(new NewRfpSubmitted($rfp));
+            Mail::to($rfp->email)->send(new RfpClientConfirmation($rfp));
+        } catch (\Throwable $e) {
+            // Fail safely without disrupting the client response
+        }
+
+        return redirect()->back()->with('success', [
+            'ref' => $rfp->reference_number,
+            'ok' => true
+        ]);
     }
 }

@@ -6,7 +6,6 @@ import Layout from "@/Components/Public/Layout.vue"
 import { useShortlistStore } from "@/Stores/shortlistStore"
 
 const steps = ["Buyer details", "Requirement type", "Programme details", "Review & submit"]
-const buyerTypes = ["Travel Advisor", "Tour Operator", "Travel Management Company", "Corporate Travel Buyer", "Meeting & Event Planner", "Association", "NGO", "Government", "Conference Organiser", "International Agency / Consortia", "Other"]
 const requirementTypes = ["Business Travel", "Group Accommodation", "Conference or Meeting", "Incentive Programme", "Association Event", "Government or NGO Programme", "Leisure Group", "Long-stay Accommodation", "Venue-only Event", "Destination Enquiry"]
 const currencies = ["USD", "KES", "ZAR", "EUR", "GBP", "NGN", "MAD"]
 const agencyServices = ["Air travel and business travel", "Airport coordination", "Ground transportation", "Destination management", "Meetings and event management", "Delegate registration and logistics", "Event production", "Tours and experiences", "VIP and protocol services", "No additional support required"]
@@ -88,9 +87,6 @@ const submit = () => {
     const matchedCountry = page.props.countries.find(c => c.name === f.plannerCountry)
     const buyerCountryId = matchedCountry ? matchedCountry.id : null
 
-    const matchedBuyerType = page.props.buyerTypes.find(b => b.name === f.buyerType)
-    const buyerTypeId = matchedBuyerType ? matchedBuyerType.id : null
-
     const requirementTypeMap = {
         "Business Travel": "business_travel",
         "Group Accommodation": "group_accommodation",
@@ -117,7 +113,7 @@ const submit = () => {
         email: f.plannerEmail,
         phone: f.plannerPhone,
         buyer_country_id: buyerCountryId,
-        buyer_type_id: buyerTypeId,
+        buyer_type_id: f.buyerType, // Direct valid database ID from select
         preferred_communication_method: f.commMethod.toLowerCase().replace(' ', '_'),
         requirement_type: requirementType,
         programme_name: f.programmeName,
@@ -170,6 +166,9 @@ const submit = () => {
 
             // 3. Open the success overlay modal
             showSuccessModal.value = true
+        },
+        onError: (errors) => {
+            console.error('Validation errors:', errors)
         },
         onFinish: () => {
             submitting.value = false
@@ -303,7 +302,7 @@ defineOptions({
                             type<span class="text-primary">*</span></label>
                         <select v-model="f.buyerType" class="input-field cursor-pointer">
                             <option value="">Select buyer type</option>
-                            <option v-for="b in buyerTypes" :key="b" :value="b">{{ b }}</option>
+                            <option v-for="b in page.props.buyerTypes" :key="b.id" :value="b.id">{{ b.name }}</option>
                         </select>
                     </div>
                     <div class="sm:col-span-2">
@@ -528,7 +527,10 @@ defineOptions({
                                 </div>
                                 <div class="flex justify-between gap-6 border-b border-border pb-1.5">
                                     <dt class="text-muted-foreground">Buyer type</dt>
-                                    <dd class="text-right font-medium">{{ f.buyerType }}</dd>
+                                    <dd class="text-right font-medium">
+                                        {{page.props.buyerTypes.find(b => b.id == f.buyerType)?.name || 'Not selected'
+                                        }}
+                                    </dd>
                                 </div>
                                 <div class="flex justify-between gap-6 border-b border-border pb-1.5">
                                     <dt class="text-muted-foreground">Preferred contact</dt>
