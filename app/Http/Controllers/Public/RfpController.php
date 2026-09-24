@@ -101,7 +101,10 @@ class RfpController extends Controller
             Mail::to('hello@hmphospitality.co')->send(new NewRfpSubmitted($rfp));
             Mail::to($rfp->email)->send(new RfpClientConfirmation($rfp));
         } catch (\Throwable $e) {
-            // Fail safely without disrupting the client response
+            \Illuminate\Support\Facades\Log::error('SMTP ERROR ON PRODUCTION: ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
         }
 
         return redirect()->back()->with('success', [
