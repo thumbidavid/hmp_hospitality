@@ -95,7 +95,7 @@ class HomeController extends Controller
         // Map collection attributes to clean frontend object variables
         $featured = $featuredProperties->take(6)->map(function ($p) {
             return [
-                'id' => $p->id,
+                'id' => $p->slug,
                 'name' => $p->name,
                 'portfolioCategory' => $p->portfolioCategory->name ?? '',
                 'city' => $p->city ?? '',
